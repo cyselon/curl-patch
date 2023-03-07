@@ -6,10 +6,22 @@ SHELL := bash
 
 BROTLI_VERSION := 1.0.9
 BORINGSSL_COMMIT := 28f96c2686459add7acedcd97cb841030bdda019
-BORINGSSL_BRANCH := chromium-stable
+
 NGHTTP2_VERSION := 1.51.0
 NGHTTP2 := nghttp2-$(NGHTTP2_VERSION)
-NGHTTP2_URL := https://github.com/nghttp2/nghttp2/releases/download/v$(NGHTTP2_VERSION)/nghttp2-$(NGHTTP2_VERSION).tar.bz2
+NGHTTP2_URL := https://github.com/nghttp2/nghttp2/releases/download/v$(NGHTTP2_VERSION)/$(NGHTTP2).tar.bz2
+
+LIBPSL_VERSION := 0.21.2
+LIBPSL := libpsl-$(LIBPSL_VERSION)
+LIBPSL_URL := https://github.com/rockdaboot/libpsl/releases/download/$(LIBPSL_VERSION)/$(LIBPSL).tar.gz
+
+CARES_VERSION := 1.19.0
+CARES := c-ares-$(CARES_VERSION)
+CARES_URL := https://c-ares.org/download/$(CARES).tar.gz
+
+LIBIDN2_VERSION := 2.3.4
+LIBIDN2 := libidn2-$(LIBIDN2_VERSION)
+LIBIDN2_URL := https://gitlab.com/libidn/libidn2/uploads/54f6d239283bbdc75d4dbd732ced04e4/$(LIBIDN2).tar.gz
 
  # In case this is changed, update build-and-test-make.yml as well
 NSS_VERSION := nss-3.88
@@ -25,9 +37,16 @@ boringssl_install_dir := $(abspath boringssl/build)
 boringssl_static_libs := $(boringssl_install_dir)/lib/libssl.a $(boringssl_install_dir)/lib/libcrypto.a
 nghttp2_install_dir := $(abspath $(NGHTTP2)/installed)
 nghttp2_static_libs := $(nghttp2_install_dir)/lib/libnghttp2.a
+cares_install_dir := $(abspath $(CARES)/installed)
+cares_static_libs := $(cares_install_dir)/lib/libcares.a
+libpsl_install_dir := $(abspath $(LIBPSL)/installed)
+libpsl_static_libs := $(libpsl_install_dir)/lib/libpsl.a
+libidn2_install_dir := $(abspath $(LIBIDN2)/installed)
+libidn2_static_libs := $(libidn2_install_dir)/lib/libidn2.a
+
 
 # Dependencies needed to compile the Chrome version
-chrome_libs := $(brotli_static_libs) $(boringssl_static_libs) $(nghttp2_static_libs)
+chrome_libs := $(brotli_static_libs) $(boringssl_static_libs) $(nghttp2_static_libs) $(cares_static_libs) $(libpsl_static_libs) $(libidn2_static_libs)
 
 # The following variables will be set by the configure script.
 prefix = @prefix@
@@ -72,6 +91,9 @@ ifeq ($(host),$(build))
 	./src/curl -V | grep -q brotli
 	./src/curl -V | grep -q nghttp2
 	./src/curl -V | grep -q BoringSSL
+	./src/curl -V | grep -q libidn2
+	./src/curl -V | grep -q PSL
+	./src/curl -V | grep -q c-ares
 	$(info Build OK)
 else
 	$(info Cross compiling, skipping checkbuild)
@@ -112,6 +134,9 @@ clean: ## Remove all build artifacts, including dependencies
 	rm -Rf $(NSS_VERSION).tar.gz $(NSS_VERSION)
 	rm -Rf boringssl.tar.gz boringssl
 	rm -Rf $(NGHTTP2).tar.bz2 $(NGHTTP2)
+	rm -Rf $(CARES).tar.gz $(CARES)
+	rm -Rf $(LIBIDN2).tar.gz $(LIBIDN2)
+	rm -Rf $(LIBPSL).tar.gz $(LIBPSL)
 	rm -Rf $(CURL_VERSION).tar.xz $(CURL_VERSION)
 
 brotli-$(BROTLI_VERSION).tar.gz:
@@ -197,6 +222,29 @@ $(boringssl_static_libs): boringssl.tar.gz
 	ln -sf ../ssl/libssl.a lib/libssl.a
 	cp -Rf ../include .
 
+$(CARES).tar.gz:
+    curl -L $(CARES_URL) -o $(CARES).tar.gz
+
+$(cares_static_libs): $(CARES).tar.gz
+    tar -xf $(CARES).tar.gz
+    cd $(CARES)
+    ./configure --prefix=$(cares_install_dir)
+
+$(LIBIDN2).tar.gz:
+    curl -L $(LIBIDN2_URL) -o $(LIBIDN2).tar.gz
+
+$(libidn2_static_libs): $(LIBIDN2).tar.gz
+    tar -xf $(LIBIDN2).tar.gz
+    cd $(LIBIDN2)
+    ./configure --prefix=$(libidn2_install_dir)
+
+$(LIBPSL).tar.gz:
+    curl -L $(LIBPSL_URL) -o $(LIBPSL).tar.gz
+
+$(libpsl_static_libs): $(LIBPSL).tar.gz
+    tar -xf $(LIBPSL).tar.gz
+    cd $(LIBPSL)
+    ./configure --prefix=$(libpsl_install_dir) --enable-asan --enable-ubsan
 
 $(NGHTTP2).tar.bz2:
 	curl -L $(NGHTTP2_URL) -o $(NGHTTP2).tar.bz2
@@ -245,8 +293,12 @@ $(CURL_VERSION)/.chrome: $(chrome_libs)	$(CURL_VERSION).tar.xz $(CURL_VERSION)/.
 	# (for cross compilation), then pass it on to curl.
 	{ \
 	  config_flags="--prefix=@prefix@"; \
+	  config_flags="$$config_flags --enable-websockets"; \
 	  config_flags="$$config_flags --with-nghttp2=$(nghttp2_install_dir)"; \
 	  config_flags="$$config_flags --with-brotli=$(brotli_install_dir)"; \
+	  config_flags="$$config_flags --with-libidn2=$(libidn2_install_dir)"; \
+	  config_flags="$$config_flags --with-libpsl=$(libpsl_install_dir)"; \
+	  config_flags="$$config_flags --enable-cares=$(cares_install_dir)"; \
 	  config_flags="$$config_flags --with-openssl=$(boringssl_install_dir)"; \
 	  config_flags="$$config_flags USE_CURL_SSLKEYLOGFILE=true"; \
 	  if test "$(static_build)" = "yes"; then \
