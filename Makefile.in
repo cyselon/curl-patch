@@ -229,6 +229,8 @@ $(cares_static_libs): $(CARES).tar.gz
 	tar -xf $(CARES).tar.gz
 	cd $(CARES)
 	./configure --prefix=$(cares_install_dir)
+	$(MAKE) MAKEFLAGS=
+	$(MAKE) install MAKEFLAGS=
 
 $(LIBIDN2).tar.gz:
 	curl -L $(LIBIDN2_URL) -o $(LIBIDN2).tar.gz
@@ -237,6 +239,8 @@ $(libidn2_static_libs): $(LIBIDN2).tar.gz
 	tar -xf $(LIBIDN2).tar.gz
 	cd $(LIBIDN2)
 	./configure --prefix=$(libidn2_install_dir)
+	$(MAKE) MAKEFLAGS=
+	$(MAKE) install MAKEFLAGS=
 
 $(LIBPSL).tar.gz:
 	curl -L $(LIBPSL_URL) -o $(LIBPSL).tar.gz
@@ -245,6 +249,8 @@ $(libpsl_static_libs): $(LIBPSL).tar.gz
 	tar -xf $(LIBPSL).tar.gz
 	cd $(LIBPSL)
 	./configure --prefix=$(libpsl_install_dir) --enable-asan --enable-ubsan
+	$(MAKE) MAKEFLAGS=
+	$(MAKE) install MAKEFLAGS=
 
 $(NGHTTP2).tar.bz2:
 	curl -L $(NGHTTP2_URL) -o $(NGHTTP2).tar.bz2
