@@ -1,0 +1,1758 @@
+Index: .gitignore
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.gitignore b/.gitignore
+new file mode 100644
+--- /dev/null	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
++++ b/.gitignore	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -0,0 +1,25 @@
++**Makefile
++**.deps/
++**.la
++**.Tpo
++**.Plo
++**.lo
++**.o
++**.a
++**.dylib
++.idea/
++**.vers
++**.pc
++**.dirstamp
++./src/curl						      
++./src/.libs/curl
++**/config.*
++configure
++**.exp
++**/.libs/**
++curl-config
++lib/curl_config.h
++lib/stamp-h1
++libtool
++tests/config
++tests/configurehelp.pm
+Index: Makefile.in
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/Makefile.in b/Makefile.in
+--- a/Makefile.in	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/Makefile.in	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -826,6 +826,7 @@
+   hsts.c             \
+   http.c             \
+   http2.c            \
++  http2_fp.c         \
+   http_chunks.c      \
+   http_digest.c      \
+   http_negotiate.c   \
+@@ -960,6 +961,7 @@
+   hsts.h             \
+   http.h             \
+   http2.h            \
++  http2_fp.h         \
+   http_chunks.h      \
+   http_digest.h      \
+   http_negotiate.h   \
+Index: include/curl/curl.h
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/include/curl/curl.h b/include/curl/curl.h
+--- a/include/curl/curl.h	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/include/curl/curl.h	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -2203,6 +2203,39 @@
+   /* Can leak things, gonna exit() soon */
+   CURLOPT(CURLOPT_QUICK_EXIT, CURLOPTTYPE_LONG, 322),
+ 
++  /* HTTP2 fingerprint */
++  CURLOPT(CURLOPT_HTTP2_FINGERPRINT, CURLOPTTYPE_STRINGPOINT, 323),
++
++  /* SSL enable alps */
++  CURLOPT(CURLOPT_SSL_ENABLE_ALPS, CURLOPTTYPE_LONG, 324),
++
++  /* ssl signature hash algorithms */
++  CURLOPT(CURLOPT_SSL_SIG_HASH_ALGS, CURLOPTTYPE_STRINGPOINT, 325),
++
++  /* SSL cert compression method */
++  CURLOPT(CURLOPT_SSL_CERT_COMPRESSION, CURLOPTTYPE_STRINGPOINT, 326),
++
++  /* SSL OCSP stapling */
++  CURLOPT(CURLOPT_SSL_ENABLE_OCSP, CURLOPTTYPE_LONG, 327),
++
++  /* SSL GREASE */
++  CURLOPT(CURLOPT_SSL_ENABLE_GREASE, CURLOPTTYPE_LONG, 328),
++
++  /* SSL cert compression method */
++  CURLOPT(CURLOPT_SSL_PERMUTE_EXT, CURLOPTTYPE_LONG, 329),
++
++  /* SSL no sesstion ticket */
++  CURLOPT(CURLOPT_SSL_NO_TICKET, CURLOPTTYPE_LONG, 330),
++
++  /* SSL signed cert timestamps */
++  CURLOPT(CURLOPT_SSL_SIG_CERT_TS, CURLOPTTYPE_LONG, 331),
++
++  /* SSL share handshake configuration */
++  CURLOPT(CURLOPT_SSL_SHED_HS_CFG, CURLOPTTYPE_LONG, 333),
++
++  /* SSL JA3 fingerprint configuration */
++  CURLOPT(CURLOPT_SSL_JA3, CURLOPTTYPE_STRINGPOINT, 334),
++
+   CURLOPT_LASTENTRY /* the last unused */
+ } CURLoption;
+ 
+Index: include/curl/typecheck-gcc.h
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/include/curl/typecheck-gcc.h b/include/curl/typecheck-gcc.h
+--- a/include/curl/typecheck-gcc.h	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/include/curl/typecheck-gcc.h	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -280,6 +280,7 @@
+    (option) == CURLOPT_FTP_ALTERNATIVE_TO_USER ||                             \
+    (option) == CURLOPT_FTPPORT ||                                             \
+    (option) == CURLOPT_HSTS ||                                                \
++   (option) == CURLOPT_HTTP2_FINGERPRINT ||                                   \
+    (option) == CURLOPT_INTERFACE ||                                           \
+    (option) == CURLOPT_ISSUERCERT ||                                          \
+    (option) == CURLOPT_KEYPASSWD ||                                           \
+Index: lib/Makefile.in
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/Makefile.in b/lib/Makefile.in
+--- a/lib/Makefile.in	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/lib/Makefile.in	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -223,7 +223,7 @@
+ 	easyoptions.c escape.c file.c fileinfo.c fopen.c formdata.c \
+ 	ftp.c ftplistparser.c getenv.c getinfo.c gopher.c h2h3.c \
+ 	hash.c headers.c hmac.c hostasyn.c hostip.c hostip4.c \
+-	hostip6.c hostsyn.c hsts.c http.c http2.c http_chunks.c \
++	hostip6.c hostsyn.c hsts.c http.c http2.c http2_fp.c http_chunks.c \
+ 	http_digest.c http_negotiate.c http_ntlm.c http_proxy.c \
+ 	http_aws_sigv4.c idn.c if2ip.c imap.c inet_ntop.c inet_pton.c \
+ 	krb5.c ldap.c llist.c md4.c md5.c memdebug.c mime.c mprintf.c \
+@@ -258,7 +258,7 @@
+ 	dynbuf.h easy_lock.h easyif.h easyoptions.h escape.h file.h \
+ 	fileinfo.h fopen.h formdata.h functypes.h ftp.h \
+ 	ftplistparser.h getinfo.h gopher.h h2h3.h hash.h headers.h \
+-	hostip.h hsts.h http.h http2.h http_chunks.h http_digest.h \
++	hostip.h hsts.h http.h http2.h http2_fp.h http_chunks.h http_digest.h \
+ 	http_negotiate.h http_ntlm.h http_proxy.h http_aws_sigv4.h \
+ 	idn.h if2ip.h imap.h inet_ntop.h inet_pton.h llist.h \
+ 	memdebug.h mime.h mqtt.h multihandle.h multiif.h netrc.h \
+@@ -303,7 +303,7 @@
+ 	libcurl_la-hostasyn.lo libcurl_la-hostip.lo \
+ 	libcurl_la-hostip4.lo libcurl_la-hostip6.lo \
+ 	libcurl_la-hostsyn.lo libcurl_la-hsts.lo libcurl_la-http.lo \
+-	libcurl_la-http2.lo libcurl_la-http_chunks.lo \
++	libcurl_la-http2.lo libcurl_la-http2_fp.lo libcurl_la-http_chunks.lo \
+ 	libcurl_la-http_digest.lo libcurl_la-http_negotiate.lo \
+ 	libcurl_la-http_ntlm.lo libcurl_la-http_proxy.lo \
+ 	libcurl_la-http_aws_sigv4.lo libcurl_la-idn.lo \
+@@ -397,7 +397,7 @@
+ 	libcurlu_la-hostasyn.lo libcurlu_la-hostip.lo \
+ 	libcurlu_la-hostip4.lo libcurlu_la-hostip6.lo \
+ 	libcurlu_la-hostsyn.lo libcurlu_la-hsts.lo libcurlu_la-http.lo \
+-	libcurlu_la-http2.lo libcurlu_la-http_chunks.lo \
++	libcurlu_la-http2.lo libcurlu_la-http2_fp.lo libcurlu_la-http_chunks.lo \
+ 	libcurlu_la-http_digest.lo libcurlu_la-http_negotiate.lo \
+ 	libcurlu_la-http_ntlm.lo libcurlu_la-http_proxy.lo \
+ 	libcurlu_la-http_aws_sigv4.lo libcurlu_la-idn.lo \
+@@ -1258,6 +1258,7 @@
+   hsts.c             \
+   http.c             \
+   http2.c            \
++  http2_fp.c         \
+   http_chunks.c      \
+   http_digest.c      \
+   http_negotiate.c   \
+@@ -1392,6 +1393,7 @@
+   hsts.h             \
+   http.h             \
+   http2.h            \
++  http2_fp.h         \
+   http_chunks.h      \
+   http_digest.h      \
+   http_negotiate.h   \
+@@ -2544,6 +2546,13 @@
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+ @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libcurl_la_CPPFLAGS) $(CPPFLAGS) $(libcurl_la_CFLAGS) $(CFLAGS) -c -o libcurl_la-http2.lo `test -f 'http2.c' || echo '$(srcdir)/'`http2.c
+ 
++libcurl_la-http2_fp.lo: http2_fp.c
++@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libcurl_la_CPPFLAGS) $(CPPFLAGS) $(libcurl_la_CFLAGS) $(CFLAGS) -MT libcurl_la-http2_fp.lo -MD -MP -MF $(DEPDIR)/libcurl_la-http2_fp.Tpo -c -o libcurl_la-http2_fp.lo `test -f 'http2_fp.c' || echo '$(srcdir)/'`http2_fp.c
++@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libcurl_la-http2_fp.Tpo $(DEPDIR)/libcurl_la-http2_fp.Plo
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='http2_fp.c' object='libcurl_la-http2_fp.lo' libtool=yes @AMDEPBACKSLASH@
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
++@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libcurl_la_CPPFLAGS) $(CPPFLAGS) $(libcurl_la_CFLAGS) $(CFLAGS) -c -o libcurl_la-http2_fp.lo `test -f 'http2_fp.c' || echo '$(srcdir)/'`http2_fp.c
++
+ libcurl_la-http_chunks.lo: http_chunks.c
+ @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libcurl_la_CPPFLAGS) $(CPPFLAGS) $(libcurl_la_CFLAGS) $(CFLAGS) -MT libcurl_la-http_chunks.lo -MD -MP -MF $(DEPDIR)/libcurl_la-http_chunks.Tpo -c -o libcurl_la-http_chunks.lo `test -f 'http_chunks.c' || echo '$(srcdir)/'`http_chunks.c
+ @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libcurl_la-http_chunks.Tpo $(DEPDIR)/libcurl_la-http_chunks.Plo
+@@ -3671,6 +3680,13 @@
+ @AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
+ @am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libcurlu_la_CPPFLAGS) $(CPPFLAGS) $(libcurlu_la_CFLAGS) $(CFLAGS) -c -o libcurlu_la-http2.lo `test -f 'http2.c' || echo '$(srcdir)/'`http2.c
+ 
++libcurlu_la-http2_fp.lo: http2_fp.c
++@am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libcurlu_la_CPPFLAGS) $(CPPFLAGS) $(libcurlu_la_CFLAGS) $(CFLAGS) -MT libcurlu_la-http2_fp.lo -MD -MP -MF $(DEPDIR)/libcurlu_la-http2_fp.Tpo -c -o libcurlu_la-http2_fp.lo `test -f 'http2_fp.c' || echo '$(srcdir)/'`http2_fp.c
++@am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libcurlu_la-http2_fp.Tpo $(DEPDIR)/libcurlu_la-http2_fp.Plo
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	$(AM_V_CC)source='http2_fp.c' object='libcurlu_la-http2_fp.lo' libtool=yes @AMDEPBACKSLASH@
++@AMDEP_TRUE@@am__fastdepCC_FALSE@	DEPDIR=$(DEPDIR) $(CCDEPMODE) $(depcomp) @AMDEPBACKSLASH@
++@am__fastdepCC_FALSE@	$(AM_V_CC@am__nodep@)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libcurlu_la_CPPFLAGS) $(CPPFLAGS) $(libcurlu_la_CFLAGS) $(CFLAGS) -c -o libcurlu_la-http2_fp.lo `test -f 'http2_fp.c' || echo '$(srcdir)/'`http2_fp.c
++
+ libcurlu_la-http_chunks.lo: http_chunks.c
+ @am__fastdepCC_TRUE@	$(AM_V_CC)$(LIBTOOL) $(AM_V_lt) --tag=CC $(AM_LIBTOOLFLAGS) $(LIBTOOLFLAGS) --mode=compile $(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(libcurlu_la_CPPFLAGS) $(CPPFLAGS) $(libcurlu_la_CFLAGS) $(CFLAGS) -MT libcurlu_la-http_chunks.lo -MD -MP -MF $(DEPDIR)/libcurlu_la-http_chunks.Tpo -c -o libcurlu_la-http_chunks.lo `test -f 'http_chunks.c' || echo '$(srcdir)/'`http_chunks.c
+ @am__fastdepCC_TRUE@	$(AM_V_at)$(am__mv) $(DEPDIR)/libcurlu_la-http_chunks.Tpo $(DEPDIR)/libcurlu_la-http_chunks.Plo
+Index: lib/Makefile.inc
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/Makefile.inc b/lib/Makefile.inc
+--- a/lib/Makefile.inc	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/lib/Makefile.inc	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -160,6 +160,7 @@
+   hsts.c             \
+   http.c             \
+   http2.c            \
++  http2_fp.c         \
+   http_chunks.c      \
+   http_digest.c      \
+   http_negotiate.c   \
+@@ -294,6 +295,7 @@
+   hsts.h             \
+   http.h             \
+   http2.h            \
++  http2_fp.h         \
+   http_chunks.h      \
+   http_digest.h      \
+   http_negotiate.h   \
+Index: lib/easyoptions.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/easyoptions.c b/lib/easyoptions.c
+--- a/lib/easyoptions.c	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/lib/easyoptions.c	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -35,6 +35,7 @@
+   {"ADDRESS_SCOPE", CURLOPT_ADDRESS_SCOPE, CURLOT_LONG, 0},
+   {"ALTSVC", CURLOPT_ALTSVC, CURLOT_STRING, 0},
+   {"ALTSVC_CTRL", CURLOPT_ALTSVC_CTRL, CURLOT_LONG, 0},
++  {"ALPS", CURLOPT_SSL_ENABLE_ALPS, CURLOT_LONG, 0},
+   {"APPEND", CURLOPT_APPEND, CURLOT_LONG, 0},
+   {"AUTOREFERER", CURLOPT_AUTOREFERER, CURLOT_LONG, 0},
+   {"AWS_SIGV4", CURLOPT_AWS_SIGV4, CURLOT_STRING, 0},
+@@ -44,6 +45,7 @@
+   {"CAPATH", CURLOPT_CAPATH, CURLOT_STRING, 0},
+   {"CA_CACHE_TIMEOUT", CURLOPT_CA_CACHE_TIMEOUT, CURLOT_LONG, 0},
+   {"CERTINFO", CURLOPT_CERTINFO, CURLOT_LONG, 0},
++  {"CERT_COMPRESSION", CURLOPT_SSL_CERT_COMPRESSION, CURLOT_STRING, 0},
+   {"CHUNK_BGN_FUNCTION", CURLOPT_CHUNK_BGN_FUNCTION, CURLOT_FUNCTION, 0},
+   {"CHUNK_DATA", CURLOPT_CHUNK_DATA, CURLOT_CBPTR, 0},
+   {"CHUNK_END_FUNCTION", CURLOPT_CHUNK_END_FUNCTION, CURLOT_FUNCTION, 0},
+@@ -116,6 +118,7 @@
+   {"FTP_USE_EPRT", CURLOPT_FTP_USE_EPRT, CURLOT_LONG, 0},
+   {"FTP_USE_EPSV", CURLOPT_FTP_USE_EPSV, CURLOT_LONG, 0},
+   {"FTP_USE_PRET", CURLOPT_FTP_USE_PRET, CURLOT_LONG, 0},
++  {"GREASE", CURLOPT_SSL_ENABLE_GREASE, CURLOT_LONG, 0},
+   {"GSSAPI_DELEGATION", CURLOPT_GSSAPI_DELEGATION, CURLOT_VALUES, 0},
+   {"HAPPY_EYEBALLS_TIMEOUT_MS", CURLOPT_HAPPY_EYEBALLS_TIMEOUT_MS,
+    CURLOT_LONG, 0},
+@@ -132,6 +135,7 @@
+   {"HSTS_CTRL", CURLOPT_HSTS_CTRL, CURLOT_LONG, 0},
+   {"HTTP09_ALLOWED", CURLOPT_HTTP09_ALLOWED, CURLOT_LONG, 0},
+   {"HTTP200ALIASES", CURLOPT_HTTP200ALIASES, CURLOT_SLIST, 0},
++  {"HTTP2_FINGERPRINT", CURLOPT_HTTP2_FINGERPRINT, CURLOT_STRING, 0},
+   {"HTTPAUTH", CURLOPT_HTTPAUTH, CURLOT_VALUES, 0},
+   {"HTTPGET", CURLOPT_HTTPGET, CURLOT_LONG, 0},
+   {"HTTPHEADER", CURLOPT_HTTPHEADER, CURLOT_SLIST, 0},
+@@ -308,8 +312,14 @@
+   {"SSL_EC_CURVES", CURLOPT_SSL_EC_CURVES, CURLOT_STRING, 0},
+   {"SSL_ENABLE_ALPN", CURLOPT_SSL_ENABLE_ALPN, CURLOT_LONG, 0},
+   {"SSL_ENABLE_NPN", CURLOPT_SSL_ENABLE_NPN, CURLOT_LONG, 0},
++  {"SSL_ENABLE_OCSP", CURLOPT_SSL_ENABLE_OCSP, CURLOT_LONG, 0},
++  {"SSL_NO_TICKET", CURLOPT_SSL_NO_TICKET, CURLOT_LONG, 0},
+   {"SSL_FALSESTART", CURLOPT_SSL_FALSESTART, CURLOT_LONG, 0},
+   {"SSL_OPTIONS", CURLOPT_SSL_OPTIONS, CURLOT_VALUES, 0},
++  {"SSL_PERMUTE_EXT", CURLOPT_SSL_PERMUTE_EXT, CURLOT_LONG, 0},
++  {"SSL_SHED_HS_CFG", CURLOPT_SSL_SHED_HS_CFG, CURLOT_LONG, 0},
++  {"SSL_SIG_CERT_TS", CURLOPT_SSL_SIG_CERT_TS, CURLOT_LONG, 0},
++  {"SSL_SIG_HASH_ALGS", CURLOPT_SSL_SIG_HASH_ALGS, CURLOT_STRING, 0},
+   {"SSL_SESSIONID_CACHE", CURLOPT_SSL_SESSIONID_CACHE, CURLOT_LONG, 0},
+   {"SSL_VERIFYHOST", CURLOPT_SSL_VERIFYHOST, CURLOT_LONG, 0},
+   {"SSL_VERIFYPEER", CURLOPT_SSL_VERIFYPEER, CURLOT_LONG, 0},
+Index: lib/h2h3.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/h2h3.c b/lib/h2h3.c
+--- a/lib/h2h3.c	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/lib/h2h3.c	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -28,6 +28,7 @@
+ #include "transfer.h"
+ #include "sendf.h"
+ #include "strcase.h"
++#include "http2_fp.h"
+ 
+ /* The last 3 #include files should be in this order */
+ #include "curl_printf.h"
+@@ -300,7 +301,8 @@
+ 
+   hreq->entries = nheader;
+   *hp = hreq;
+-
++  if(data->set.h2h3_fp)
++    reoder_pseudo_headers(nva, nheader, data->set.h2h3_fp->header_order);
+   return CURLE_OK;
+ 
+   fail:
+Index: lib/http2.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/http2.c b/lib/http2.c
+--- a/lib/http2.c	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/lib/http2.c	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -43,6 +43,8 @@
+ #include "dynbuf.h"
+ #include "h2h3.h"
+ #include "headers.h"
++#include "http2_fp.h"
++
+ /* The last 3 #include files should be in this order */
+ #include "curl_printf.h"
+ #include "curl_memory.h"
+@@ -63,14 +65,20 @@
+ #endif
+ 
+ #define HTTP2_HUGE_WINDOW_SIZE (32 * 1024 * 1024) /* 32 MB */
++#define H2_DEFAULT_HEADER_TABLE_SIZE 65536
+ 
+-
+-#define H2_SETTINGS_IV_LEN  3
++#define H2_SETTINGS_IV_LEN  6
+ #define H2_BINSETTINGS_LEN 80
+ 
+ static int populate_settings(nghttp2_settings_entry *iv,
+                              struct Curl_easy *data)
+ {
++  if(data->set.h2h3_fp && data->set.h2h3_fp->iv) {
++    int ivlen = data->set.h2h3_fp->ivlen;
++    memmove(iv, data->set.h2h3_fp->iv,
++      ivlen * sizeof(nghttp2_settings_entry));
++    return ivlen;
++  }
+   iv[0].settings_id = NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS;
+   iv[0].value = Curl_multi_max_concurrent_streams(data->multi);
+ 
+@@ -87,9 +95,7 @@
+                                    struct Curl_easy *data)
+ {
+   nghttp2_settings_entry iv[H2_SETTINGS_IV_LEN];
+-  int ivlen;
+-
+-  ivlen = populate_settings(iv, data);
++  int ivlen = populate_settings(iv, data);
+   /* this returns number of bytes it wrote */
+   return nghttp2_pack_settings_payload(binsettings, H2_BINSETTINGS_LEN,
+                                        iv, ivlen);
+@@ -324,13 +330,26 @@
+     }
+   }
+ 
+-  rc = nghttp2_session_set_local_window_size(ctx->h2, NGHTTP2_FLAG_NONE, 0,
+-                                             HTTP2_HUGE_WINDOW_SIZE);
+-  if(rc) {
+-    failf(data, "nghttp2_session_set_local_window_size() failed: %s(%d)",
+-          nghttp2_strerror(rc), rc);
+-    result = CURLE_HTTP2;
+-    goto out;
++  if(!data->set.h2h3_fp) {
++    rc = nghttp2_session_set_local_window_size(
++      ctx->h2, NGHTTP2_FLAG_NONE, 0, HTTP2_HUGE_WINDOW_SIZE);
++    if(rc) {
++      failf(data, "nghttp2_session_set_local_window_size() failed: %s(%d)",
++            nghttp2_strerror(rc), rc);
++      result = CURLE_HTTP2;
++      goto out;
++    }
++  }
++  else if(data->set.h2h3_fp->window_size_increment > 0) {
++    rc = nghttp2_submit_window_update(
++      ctx->h2, NGHTTP2_FLAG_NONE, 0,
++      data->set.h2h3_fp->window_size_increment);
++    if(rc) {
++      failf(data, "nghttp2_submit_window_update() failed: %s(%d)",
++            nghttp2_strerror(rc), rc);
++      result = CURLE_HTTP2;
++      goto out;
++    }
+   }
+ 
+   /* all set, traffic will be send on connect */
+Index: lib/http2_fp.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/http2_fp.c b/lib/http2_fp.c
+new file mode 100644
+--- /dev/null	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
++++ b/lib/http2_fp.c	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -0,0 +1,245 @@
++/***************************************************************************
++ *                                  _   _ ____  _
++ *  Project                     ___| | | |  _ \| |
++ *                             / __| | | | |_) | |
++ *                            | (__| |_| |  _ <| |___
++ *                             \___|\___/|_| \_\_____|
++ *
++ * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
++ *
++ * This software is licensed as described in the file COPYING, which
++ * you should have received as part of this distribution. The term
++ * are also available at https://curl.se/docs/copyright.html.
++ *
++ * You may opt to use, copy, modify, merge, publish, distribute and/or sell
++ * copies of the Software, and permit persons to whom the Software i
++ * furnished to do so, under the terms of the COPYING file.
++ *
++ * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
++ * KIND, either express or implied.
++ *
++ * SPDX-License-Identifier: curl
++ *
++ ***************************************************************************/
++
++#include "curl_setup.h"
++
++#ifdef USE_NGHTTP2
++
++#define HTTP2_HUGE_WINDOW_SIZE (32 * 1024 * 1024) /* 32 MB */
++
++#include <stdlib.h>
++#include <curl/curl.h>
++#include "h2h3.h"
++#include "http2_fp.h"
++
++#include "curl_printf.h"
++#include "curl_memory.h"
++#include "memdebug.h"
++
++void free_h2h3_fingerprint(h2h3_fingerprint **fp)
++{
++  if(!fp || !*fp)
++    return;
++  if((*fp)->iv)
++    free((*fp)->iv);
++  free(*fp);
++  *fp = ZERO_NULL;
++}
++
++static h2h3_fingerprint *new_default_h2h3_fp(int ivlen)
++{
++    h2h3_fingerprint *fp =
++    (h2h3_fingerprint *)calloc(1, sizeof(h2h3_fingerprint));
++    if(fp) {
++      fp->ivlen = ivlen;
++      if(ivlen > 0) {
++        fp->iv = (nghttp2_settings_entry*) \
++          calloc(ivlen, sizeof(nghttp2_settings_entry));
++        if(!fp->iv) {
++          free(fp);
++          return NULL;
++        }
++      }
++      fp->window_size_increment = 0;
++      fp->header_order[0] = 'm';
++      fp->header_order[1] = 'a';
++      fp->header_order[2] = 's';
++      fp->header_order[3] = 'p';
++    }
++    return fp;
++}
++
++static int parse_setting_entry(nghttp2_settings_entry *iv, const char *p)
++{
++  int type = *p - '0';
++  if(type > 6 || type < 1)
++    return 0;
++  iv->settings_id = type;
++  iv->value = strtol(p + 2, NULL, 10);
++  return 1;
++}
++
++static int count_setting_entries(const char *src)
++{
++  int num = 0;
++  while(*src && *src != '|') {
++    if(*src == ',')
++      num++;
++    src++;
++  }
++  if(*src == '|')
++    num++;
++  return num;
++}
++
++static uint32_t get_initial_window_size(
++  const nghttp2_settings_entry *iv, size_t ivlen)
++{
++  if(iv) {
++    for(const nghttp2_settings_entry *p = iv + ivlen - 1; p >= iv; p--)
++      if(p->settings_id == NGHTTP2_SETTINGS_INITIAL_WINDOW_SIZE)
++        return p->value;
++  }
++  return HTTP2_HUGE_WINDOW_SIZE;
++}
++/*
++static int parse_priorities(h2h3_fingerprint *fp, const char *str)
++{
++  size_t len, i;
++  const char *cp, *start;
++  if(!str || *str < '0' || *str > '9')
++    return 1;
++  cp = str;
++  while(*cp && *cp != '|') {
++    if(*cp == ':') len++;
++    cp++;
++  }
++  if(':' == *cp) len--;
++  if(!(len % 3))
++    return 1;
++  if(len == 0) return 0;
++  len = len / 3 + 1;
++  fp->priorities = (struct Curl_data_priority*)
++    calloc(len, sizeof(struct Curl_data_priority));
++  if(!fp->priorities)
++    return 1;
++  if(len == 1) {
++    fp->priorities[0].weight = strtol(str, NULL, 10);
++    return 0;
++  }
++  for(i = 0, cp = str; i < len && *cp && *cp != '|'; i++) {
++    start = cp;
++    fp->priorities[i].weight =
++  }
++  return 0;
++}
++*/
++
++h2h3_fingerprint *parse_h2h3_fingerprint(const char *src)
++{
++    /*
++     src is string like:
++       "1:65536,2:0,3:1000,4:6291456,6:262144|15663105|0|m,a,s,p"
++     */
++    h2h3_fingerprint *fp = NULL;
++    const char *p = src;
++    char *ch;
++    int index = 0, ivlen;
++    if(!src)
++      return fp;
++
++    while(*p && *p < '0' && *p > '9')
++      p++;
++
++    if(!*p)
++      return fp;
++    ivlen = count_setting_entries(p);
++    fp = new_default_h2h3_fp(ivlen);
++    if(!fp)
++      return NULL;
++
++    /* parse setting frame config */
++    while(*p && *p != '|' && index < ivlen) {
++      index += parse_setting_entry(&fp->iv[index], p);
++      while(*p && *p != ',' && *p != ';' && *p != '|')
++        p++;
++      if(*p == ',' || *p == ';')
++        p++;
++    }
++    /* parse window update and priority */
++    if(*p == '|') {
++      fp->window_size_increment = strtol(p + 1, ZERO_NULL, 10);
++      p++;
++    }
++    while(*p && *p!= '|')
++      p++;
++    if(*p == '|')
++      fp->priority = strtol(p + 1, NULL, 10);
++    /* parse header order */
++    if(*p == '|') {
++        /*
++            mark is used to check if conflict,
++            if all set once, mark will be
++            mark = (1 << ('m' % 7)) | \
++                   (1 << ('a' % 7)) | \
++                   (1 << ('s' % 7)) | \
++                   (1 << ('p' % 7))
++                 = 89
++        */
++        int mark = 0;
++        ch = fp->header_order;
++        while(*p && ch - fp->header_order < 4) {
++          if(*p == 'm' || *p == 'a' || *p == 's' || *p == 'p') {
++            *ch = *p;
++            ch++;
++            mark |= 1 << (*p % 7);
++          }
++          p++;
++        }
++        if(ch > fp->header_order && mark != 89) {
++          free_h2h3_fingerprint(&fp);
++          return NULL;
++        }
++    }
++    return fp;
++}
++void reoder_pseudo_headers(
++    struct h2h3pseudo *nva, size_t hdlen, const char order[4])
++{
++    if(!nva || hdlen < 4)
++        return;
++    struct h2h3pseudo tmp;
++    const char *ph;
++    const char *names[4];
++    size_t idx, name_index;
++    for(const char **pph = names; pph - names < 4; pph++) {
++      switch(order[pph-names]) {
++        case 'm':
++            *pph = H2H3_PSEUDO_METHOD;
++            break;
++        case 'a':
++            *pph = H2H3_PSEUDO_AUTHORITY;
++            break;
++        case 's':
++            *pph = H2H3_PSEUDO_SCHEME;
++            break;
++        case 'p':
++            *pph = H2H3_PSEUDO_PATH;
++            break;
++      }
++    }
++    for(ph = order; ph - order < 4; ph++) {
++      name_index = idx = ph - order;
++      while(idx < hdlen && nva[idx].name != names[name_index])
++        idx++;
++      if(idx >= hdlen)
++        break;
++      if(name_index != idx) {
++        tmp = nva[name_index];
++        nva[name_index] = nva[idx];
++        nva[idx] = tmp;
++      }
++    }
++}
++#endif /* USE_NGHTTP2 */
+Index: lib/http2_fp.h
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/http2_fp.h b/lib/http2_fp.h
+new file mode 100644
+--- /dev/null	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
++++ b/lib/http2_fp.h	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -0,0 +1,51 @@
++#ifndef HEADER_CURL_HTTP2_FP_H
++#define HEADER_CURL_HTTP2_FP_H
++/***************************************************************************
++ *                                  _   _ ____  _
++ *  Project                     ___| | | |  _ \| |
++ *                             / __| | | | |_) | |
++ *                            | (__| |_| |  _ <| |___
++ *                             \___|\___/|_| \_\_____|
++ *
++ * Copyright (C) Daniel Stenberg, <daniel@haxx.se>, et al.
++ *
++ * This software is licensed as described in the file COPYING, which
++ * you should have received as part of this distribution. The terms
++ * are also available at https://curl.se/docs/copyright.html.
++ *
++ * You may opt to use, copy, modify, merge, publish, distribute and/or sell
++ * copies of the Software, and permit persons to whom the Software is
++ * furnished to do so, under the terms of the COPYING file.
++ *
++ * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
++ * KIND, either express or implied.
++ *
++ * SPDX-License-Identifier: curl
++ *
++ ***************************************************************************/
++
++#include "curl_setup.h"
++
++#ifdef USE_NGHTTP2
++
++#include <nghttp2/nghttp2.h>
++
++typedef struct
++{
++    nghttp2_settings_entry *iv;
++    int ivlen;
++    uint32_t window_size_increment;
++    uint8_t priority;
++    char header_order[4];
++} h2h3_fingerprint;
++
++void free_h2h3_fingerprint(h2h3_fingerprint **);
++
++h2h3_fingerprint *parse_h2h3_fingerprint(const char *);
++
++void reoder_pseudo_headers(
++    struct h2h3pseudo *nva, size_t hdlen, const char order[4]);
++
++#endif /* USE_NGHTTP2 */
++
++#endif /* HEADER_CURL_HTTP2_FP_H */
+Index: lib/setopt.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/setopt.c b/lib/setopt.c
+--- a/lib/setopt.c	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/lib/setopt.c	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -50,6 +50,7 @@
+ #include "multiif.h"
+ #include "altsvc.h"
+ #include "hsts.h"
++#include "http2_fp.h"
+ 
+ /* The last 3 #include files should be in this order */
+ #include "curl_printf.h"
+@@ -2350,6 +2351,37 @@
+      */
+     data->set.private_data = va_arg(param, void *);
+     break;
++
++  case CURLOPT_HTTP2_FINGERPRINT:
++    /*
++     * Set HTTP2 fingerprint.
++     */
++  {
++#ifdef USE_NGHTTP2
++    /* TODO: this option can set only when connection starts? */
++    arg = va_arg(param, char *);
++    if(strlen(arg) == 0) {
++      /* remove configure */
++      Curl_safefree(data->set.h2h3_fp);
++    }
++    else {
++      h2h3_fingerprint *fp = parse_h2h3_fingerprint((const char *)arg);
++      if(fp) {
++        if(data->set.h2h3_fp)
++          free_h2h3_fingerprint(&data->set.h2h3_fp);
++        data->set.h2h3_fp = fp;
++        /* overwrite other config */
++        if(!data->conn) {
++          /* if connection not attached then priority can be set */
++          data->set.priority.weight = fp->priority;
++        }
++      }
++    }
++    break;
++#else
++    return CURLE_NOT_BUILT_IN;
++#endif
++  }
+ 
+   case CURLOPT_MAXFILESIZE:
+     /*
+@@ -2947,10 +2979,47 @@
+ #endif
+     break;
+   case CURLOPT_SSL_ENABLE_NPN:
++    data->set.ssl_enable_npn = (0 != va_arg(param, long)) ? TRUE : FALSE;
+     break;
+   case CURLOPT_SSL_ENABLE_ALPN:
+     data->set.ssl_enable_alpn = (0 != va_arg(param, long)) ? TRUE : FALSE;
+     break;
++  case CURLOPT_SSL_ENABLE_ALPS:
++    data->set.ssl_enable_alps = (0 != va_arg(param, long)) ? TRUE : FALSE;
++    break;
++  case CURLOPT_SSL_ENABLE_GREASE:
++    data->set.ssl_enable_grease = (0 != va_arg(param, long)) ? TRUE : FALSE;
++    break;
++  case CURLOPT_SSL_ENABLE_OCSP:
++    data->set.ssl_enable_ocsp = (0 != va_arg(param, long)) ? TRUE : FALSE;
++    break;
++  case CURLOPT_SSL_PERMUTE_EXT:
++    data->set.ssl_permute_ext = (0 != va_arg(param, long)) ? TRUE : FALSE;
++    break;
++  case CURLOPT_SSL_NO_TICKET:
++    data->set.ssl_enable_ticket = (0 != va_arg(param, long)) ? FALSE : TRUE;
++    break;
++  case CURLOPT_SSL_SIG_CERT_TS:
++    data->set.ssl_sig_cert_ts = (0 != va_arg(param, long)) ? TRUE : FALSE;
++    break;
++  case CURLOPT_SSL_SHED_HS_CFG:
++    data->set.ssl_shed_hs_cfg = (0 != va_arg(param, long)) ? TRUE : FALSE;
++    break;
++  case CURLOPT_SSL_SIG_HASH_ALGS:
++    /*
++     * Set SSL signture hash algorithms.
++     */
++    result = Curl_setstropt(&data->set.str[STRING_SSL_SIG_HASH_ALGS],
++                            va_arg(param, char *));
++    break;
++  case CURLOPT_SSL_CERT_COMPRESSION:
++    /*
++     * Set SSL cert compression method.
++     */
++    result = Curl_setstropt(&data->set.str[STRING_SSL_CERT_COMPRESSION],
++                            va_arg(param, char *));
++    break;
++
+ #ifdef USE_UNIX_SOCKETS
+   case CURLOPT_UNIX_SOCKET_PATH:
+     data->set.abstract_unix_socket = FALSE;
+Index: lib/url.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/url.c b/lib/url.c
+--- a/lib/url.c	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/lib/url.c	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -627,6 +627,13 @@
+   set->tcp_fastopen = FALSE;
+   set->tcp_nodelay = TRUE;
+   set->ssl_enable_alpn = TRUE;
++  set->ssl_enable_alps = FALSE;
++  set->ssl_enable_npn = FALSE;
++  set->ssl_enable_grease = FALSE;
++  set->ssl_enable_ticket = TRUE;
++  set->ssl_enable_ocsp = FALSE;
++  set->ssl_sig_cert_ts = FALSE;
++  set->ssl_shed_hs_cfg = FALSE;
+   set->expect_100_timeout = 1000L; /* Wait for a second by default. */
+   set->sep_headers = TRUE; /* separated header lists by default */
+   set->buffer_size = READBUFFER_SIZE;
+@@ -3521,6 +3528,14 @@
+     conn->bits.conn_to_port = FALSE;
+   }
+ 
++  conn->bits.tls_enable_npn = data->set.ssl_enable_npn;
++  conn->bits.tls_enable_alps = data->set.ssl_enable_alps;
++  conn->bits.tls_enable_grease = data->set.ssl_enable_grease;
++  conn->bits.tls_enable_ticket = data->set.ssl_enable_ticket;
++  conn->bits.tls_enable_ocsp = data->set.ssl_enable_ocsp;
++  conn->bits.tls_sig_cert_ts = data->set.ssl_sig_cert_ts;
++  conn->bits.tls_shed_hs_cfg = data->set.ssl_shed_hs_cfg;
++
+ #ifndef CURL_DISABLE_PROXY
+   /*************************************************************
+    * If the "connect to" feature is used with an HTTP proxy,
+@@ -3607,6 +3622,10 @@
+   data->set.ssl.primary.cert_blob = data->set.blobs[BLOB_CERT];
+   data->set.ssl.primary.ca_info_blob = data->set.blobs[BLOB_CAINFO];
+   data->set.ssl.primary.curves = data->set.str[STRING_SSL_EC_CURVES];
++  data->set.ssl.primary.cert_compression =
++   data->set.str[STRING_SSL_CERT_COMPRESSION];
++  data->set.ssl.primary.sig_hash_algs =
++   data->set.str[STRING_SSL_SIG_HASH_ALGS];
+ 
+ #ifndef CURL_DISABLE_PROXY
+   data->set.proxy_ssl.primary.CApath = data->set.str[STRING_SSL_CAPATH_PROXY];
+Index: lib/urldata.h
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/urldata.h b/lib/urldata.h
+--- a/lib/urldata.h	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/lib/urldata.h	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -134,6 +134,7 @@
+ #include "hash.h"
+ #include "splay.h"
+ #include "dynbuf.h"
++#include "http2_fp.h"
+ 
+ /* return the count of bytes sent, or -1 on error */
+ typedef ssize_t (Curl_send)(struct Curl_easy *data,   /* transfer */
+@@ -259,6 +260,8 @@
+   char *cipher_list13;   /* list of TLS 1.3 cipher suites to use */
+   char *pinned_key;
+   char *CRLfile;         /* CRL to check certificate revocation */
++  char *cert_compression; /* cert compression algorithm */
++  char *sig_hash_algs;   /* ssl signature hash algorithms */
+   struct curl_blob *cert_blob;
+   struct curl_blob *ca_info_blob;
+   struct curl_blob *issuercert_blob;
+@@ -516,6 +519,15 @@
+   BIT(multiplex); /* connection is multiplexed */
+   BIT(tcp_fastopen); /* use TCP Fast Open */
+   BIT(tls_enable_alpn); /* TLS ALPN extension? */
++  BIT(tls_enable_npn); /* TLS NPN extension? */
++  BIT(tls_enable_alps); /* TLS ALPS extension? */
++  BIT(tls_enable_grease); /* TLS GREASE? */
++  BIT(tls_enable_ocsp); /* TLS OCSP stapling? */
++  BIT(tls_enable_ticket); /* TLS session ticket extension? */
++  BIT(tls_permute_ext); /* TLS permute extension? */
++  BIT(tls_sig_cert_ts); /* TLS sign cert timestamp extension? */
++  BIT(tls_shed_hs_cfg); /* TLS share handshake configuration? */
++
+ #ifndef CURL_DISABLE_DOH
+   BIT(doh);
+ #endif
+@@ -1541,6 +1553,8 @@
+   STRING_DNS_LOCAL_IP4,
+   STRING_DNS_LOCAL_IP6,
+   STRING_SSL_EC_CURVES,
++  STRING_SSL_SIG_HASH_ALGS,
++  STRING_SSL_CERT_COMPRESSION,
+ 
+   /* -- end of null-terminated strings -- */
+ 
+@@ -1678,6 +1692,9 @@
+   unsigned int upload_buffer_size; /* size of upload buffer to use,
+                                       keep it >= CURL_MAX_WRITE_SIZE */
+   void *private_data; /* application-private data */
++#ifdef USE_NGHTTP2
++  h2h3_fingerprint *h2h3_fp; /* http2 fingerprint */
++#endif
+ #ifndef CURL_DISABLE_HTTP
+   struct curl_slist *http200aliases; /* linked list of aliases for http200 */
+ #endif
+@@ -1837,6 +1854,15 @@
+   BIT(tcp_keepalive);  /* use TCP keepalives */
+   BIT(tcp_fastopen);   /* use TCP Fast Open */
+   BIT(ssl_enable_alpn);/* TLS ALPN extension? */
++  BIT(ssl_enable_npn); /* TLS NPN extension? */
++  BIT(ssl_enable_alps); /* TLS ALPS extension? */
++  BIT(ssl_enable_grease); /* TLS GREASE? */
++  BIT(ssl_enable_ocsp); /* TLS OCSP stapling? */
++  BIT(ssl_enable_ticket); /* TLS session ticket extension? */
++  BIT(ssl_permute_ext); /* TLS permute extension? */
++  BIT(ssl_sig_cert_ts); /* TLS sign cert timestamp extension? */
++  BIT(ssl_shed_hs_cfg); /* TLS share handshake configuration? */
++
+   BIT(path_as_is);     /* allow dotdots? */
+   BIT(pipewait);       /* wait for multiplex status before starting a new
+                           connection */
+Index: lib/vtls/openssl.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/vtls/openssl.c b/lib/vtls/openssl.c
+--- a/lib/vtls/openssl.c	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/lib/vtls/openssl.c	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -80,6 +80,14 @@
+ #include <openssl/buffer.h>
+ #include <openssl/pkcs12.h>
+ 
++#ifdef HAVE_LIBZ
++#include <zlib.h>
++#endif
++
++#ifdef HAVE_BROTLI
++#include <brotli/decode.h>
++#endif
++
+ #if (OPENSSL_VERSION_NUMBER >= 0x0090808fL) && !defined(OPENSSL_NO_OCSP)
+ #include <openssl/ocsp.h>
+ #endif
+@@ -283,6 +291,113 @@
+ #define USE_PRE_1_1_API (OPENSSL_VERSION_NUMBER < 0x10100000L)
+ #endif /* !LIBRESSL_VERSION_NUMBER */
+ 
++
++#if defined(OPENSSL_IS_BORINGSSL)
++#define HAVE_SSL_CTX_SET_VERIFY_ALGORITHM_PREFS
++
++/*
++ * kMaxSignatureAlgorithmNameLen and kSignatureAlgorithmNames
++ * Taken from BoringSSL, see ssl/ssl_privkey.cc
++ * */
++static const size_t kMaxSignatureAlgorithmNameLen = 23;
++
++static const struct {
++  uint16_t signature_algorithm;
++  const char *name;
++} kSignatureAlgorithmNames[] = {
++    {SSL_SIGN_RSA_PKCS1_MD5_SHA1, "rsa_pkcs1_md5_sha1"},
++    {SSL_SIGN_RSA_PKCS1_SHA1, "rsa_pkcs1_sha1"},
++    {SSL_SIGN_RSA_PKCS1_SHA256, "rsa_pkcs1_sha256"},
++    {SSL_SIGN_RSA_PKCS1_SHA384, "rsa_pkcs1_sha384"},
++    {SSL_SIGN_RSA_PKCS1_SHA512, "rsa_pkcs1_sha512"},
++    {SSL_SIGN_ECDSA_SHA1, "ecdsa_sha1"},
++    {SSL_SIGN_ECDSA_SECP256R1_SHA256, "ecdsa_secp256r1_sha256"},
++    {SSL_SIGN_ECDSA_SECP384R1_SHA384, "ecdsa_secp384r1_sha384"},
++    {SSL_SIGN_ECDSA_SECP521R1_SHA512, "ecdsa_secp521r1_sha512"},
++    {SSL_SIGN_RSA_PSS_RSAE_SHA256, "rsa_pss_rsae_sha256"},
++    {SSL_SIGN_RSA_PSS_RSAE_SHA384, "rsa_pss_rsae_sha384"},
++    {SSL_SIGN_RSA_PSS_RSAE_SHA512, "rsa_pss_rsae_sha512"},
++    {SSL_SIGN_ED25519, "ed25519"},
++};
++
++#define MAX_SIG_ALGS \
++  sizeof(kSignatureAlgorithmNames) / sizeof(kSignatureAlgorithmNames[0])
++
++/* Default signature hash algorithms taken from Chrome/Chromium.
++ * See kVerifyPeers @ net/socket/ssl_client_socket_impl.cc */
++static const uint16_t default_sig_algs[] = {
++  SSL_SIGN_ECDSA_SECP256R1_SHA256, SSL_SIGN_RSA_PSS_RSAE_SHA256,
++  SSL_SIGN_RSA_PKCS1_SHA256,       SSL_SIGN_ECDSA_SECP384R1_SHA384,
++  SSL_SIGN_RSA_PSS_RSAE_SHA384,    SSL_SIGN_RSA_PKCS1_SHA384,
++  SSL_SIGN_RSA_PSS_RSAE_SHA512,    SSL_SIGN_RSA_PKCS1_SHA512,
++};
++
++#define DEFAULT_SIG_ALGS_LENGTH  \
++  sizeof(default_sig_algs) / sizeof(default_sig_algs[0])
++
++static CURLcode parse_sig_algs(struct Curl_easy *data,
++                               const char *sigalgs,
++                               uint16_t *algs,
++                               size_t *nalgs)
++{
++  *nalgs = 0;
++  while(sigalgs && sigalgs[0]) {
++    int i;
++    bool found = FALSE;
++    const char *end;
++    size_t len;
++    char algname[kMaxSignatureAlgorithmNameLen + 1];
++
++    end = strpbrk(sigalgs, ":,");
++    if(end)
++      len = end - sigalgs;
++    else
++      len = strlen(sigalgs);
++
++    if(len > kMaxSignatureAlgorithmNameLen) {
++      failf(data, "Bad signature hash algorithm list");
++      return CURLE_BAD_FUNCTION_ARGUMENT;
++    }
++
++    if(!len) {
++      ++sigalgs;
++      continue;
++    }
++
++    if(*nalgs == MAX_SIG_ALGS) {
++      /* Reached the maximum number of possible algorithms, but more data
++       * available in the list. */
++      failf(data, "Bad signature hash algorithm list");
++      return CURLE_BAD_FUNCTION_ARGUMENT;
++    }
++
++    memcpy(algname, sigalgs, len);
++    algname[len] = 0;
++
++    for(i = 0; i < MAX_SIG_ALGS; i++) {
++      if(strcasecompare(algname, kSignatureAlgorithmNames[i].name)) {
++        algs[*nalgs] = kSignatureAlgorithmNames[i].signature_algorithm;
++        (*nalgs)++;
++        found = TRUE;
++        break;
++      }
++    }
++
++    if(!found) {
++      failf(data, "Unknown signature hash algorithm: '%s'", algname);
++      return CURLE_BAD_FUNCTION_ARGUMENT;
++    }
++
++    if(end)
++      sigalgs = ++end;
++    else
++      break;
++  }
++
++  return CURLE_OK;
++}
++#endif
++
+ struct ssl_backend_data {
+   /* these ones requires specific SSL-types */
+   SSL_CTX* ctx;
+@@ -3452,6 +3567,152 @@
+ }
+ #endif /* HAVE_SSL_X509_STORE_SHARE */
+ 
++#ifdef HAVE_LIBZ
++int DecompressZlibCert(SSL *ssl,
++                       CRYPTO_BUFFER** out,
++                       size_t uncompressed_len,
++                       const uint8_t* in,
++                       size_t in_len)
++{
++  z_stream strm;
++  uint8_t* data;
++  CRYPTO_BUFFER* decompressed = CRYPTO_BUFFER_alloc(&data, uncompressed_len);
++  if(!decompressed) {
++    return 0;
++  }
++
++  strm.zalloc = NULL;
++  strm.zfree = NULL;
++  strm.opaque = NULL;
++  strm.next_in = (Bytef *)in;
++  strm.avail_in = in_len;
++  strm.next_out = (Bytef *)data;
++  strm.avail_out = uncompressed_len;
++
++  if(inflateInit(&strm) != Z_OK) {
++    CRYPTO_BUFFER_free(decompressed);
++    return 0;
++  }
++
++  if(inflate(&strm, Z_FINISH) != Z_STREAM_END ||
++    strm.avail_in != 0 ||
++    strm.avail_out != 0) {
++    inflateEnd(&strm);
++    CRYPTO_BUFFER_free(decompressed);
++    return 0;
++  }
++
++  inflateEnd(&strm);
++  *out = decompressed;
++  return 1;
++}
++#endif
++
++#ifdef HAVE_BROTLI
++
++/* Taken from Chromium and adapted to C,
++ * see net/ssl/cert_compression.cc
++ */
++int DecompressBrotliCert(SSL* ssl,
++                         CRYPTO_BUFFER** out,
++                         size_t uncompressed_len,
++                         const uint8_t* in,
++                         size_t in_len) {
++  uint8_t* data;
++  CRYPTO_BUFFER* decompressed = CRYPTO_BUFFER_alloc(&data, uncompressed_len);
++  if(!decompressed) {
++    return 0;
++  }
++
++  size_t output_size = uncompressed_len;
++  if(BrotliDecoderDecompress(in_len, in, &output_size, data) !=
++          BROTLI_DECODER_RESULT_SUCCESS ||
++      output_size != uncompressed_len) {
++    CRYPTO_BUFFER_free(decompressed);
++    return 0;
++  }
++
++  *out = decompressed;
++  return 1;
++}
++#endif
++
++#if defined(HAVE_LIBZ) || defined(HAVE_BROTLI)
++static struct {
++  char *alg_name;
++  uint16_t alg_id;
++  ssl_cert_compression_func_t compress;
++  ssl_cert_decompression_func_t decompress;
++} cert_compress_algs[] = {
++#ifdef HAVE_LIBZ
++  {"zlib", TLSEXT_cert_compression_zlib, NULL, DecompressZlibCert},
++#endif
++#ifdef HAVE_BROTLI
++  {"brotli", TLSEXT_cert_compression_brotli, NULL, DecompressBrotliCert},
++#endif
++};
++
++#define NUM_CERT_COMPRESSION_ALGS \
++  sizeof(cert_compress_algs) / sizeof(cert_compress_algs[0])
++
++/*
++* curl-impersonate:
++* Add support for TLS extension 27 - compress_certificate.
++* This calls the BoringSSL-specific API SSL_CTX_add_cert_compression_alg
++* for each algorithm specified in cert_compression,
++* which is a comma separated list.
++*/
++static CURLcode add_cert_compression(struct Curl_easy *data,
++                                     SSL_CTX *ctx,
++                                     const char *algorithms)
++{
++  int i;
++  const char *s = algorithms;
++  char *alg_name;
++  size_t alg_name_len;
++  bool found;
++
++  while(s && s[0]) {
++    found = FALSE;
++
++    for(i = 0; i < NUM_CERT_COMPRESSION_ALGS; i++) {
++      alg_name = cert_compress_algs[i].alg_name;
++      alg_name_len = strlen(alg_name);
++      if(strlen(s) >= alg_name_len &&
++         strncasecompare(s, alg_name, alg_name_len) &&
++         (s[alg_name_len] == ',' || s[alg_name_len] == 0)) {
++        if(!SSL_CTX_add_cert_compression_alg(ctx,
++                    cert_compress_algs[i].alg_id,
++                    cert_compress_algs[i].compress,
++                    cert_compress_algs[i].decompress)) {
++          failf(data, "Error adding certificate compression algorithm '%s'",
++                alg_name);
++          return CURLE_SSL_CIPHER;
++        }
++        s += alg_name_len;
++        if(*s == ',')
++          s += 1;
++        found = TRUE;
++        break;
++      }
++    }
++
++    if(!found) {
++      failf(data, "Invalid compression algorithm list");
++      return CURLE_BAD_FUNCTION_ARGUMENT;
++    }
++  }
++
++  return CURLE_OK;
++}
++#else
++static CURLcode add_cert_compression(SSL_CTX *ctx, const char *algorithms)
++{
++  /* No compression algorithms are available. */
++  return CURLE_BAD_FUNCTION_ARGUMENT;
++}
++#endif
++
+ static CURLcode ossl_connect_step1(struct Curl_cfilter *cf,
+                                    struct Curl_easy *data)
+ {
+@@ -3586,7 +3847,12 @@
+   ctx_options = SSL_OP_ALL;
+ 
+ #ifdef SSL_OP_NO_TICKET
+-  ctx_options |= SSL_OP_NO_TICKET;
++  if(cf->conn->bits.tls_enable_ticket) {
++    ctx_options &= SSL_OP_NO_TICKET;
++  }
++  else{
++    ctx_options |= SSL_OP_NO_TICKET;
++  }
+ #endif
+ 
+ #ifdef SSL_OP_NO_COMPRESSION
+@@ -3604,6 +3870,13 @@
+   if(!ssl_config->enable_beast)
+     ctx_options &= ~SSL_OP_DONT_INSERT_EMPTY_FRAGMENTS;
+ #endif
++  SSL_CTX_set_grease_enabled(backend->ctx,
++     cf->conn->bits.tls_enable_grease);
++  SSL_CTX_set_permute_extensions(backend->ctx,
++      cf->conn->bits.tls_permute_ext);
++  if(cf->conn->bits.tls_enable_npn)
++    SSL_CTX_set_next_proto_select_cb(backend->ctx,
++     SSL_select_next_proto, data);
+ 
+   switch(ssl_version) {
+     case CURL_SSLVERSION_SSLv2:
+@@ -3635,6 +3908,11 @@
+       failf(data, "Unrecognized parameter passed via CURLOPT_SSLVERSION");
+       return CURLE_SSL_CONNECT_ERROR;
+   }
++   if(ssl_config->primary.cert_compression) {
++     if(add_cert_compression (
++         data, backend->ctx, ssl_config->primary.cert_compression))
++       return CURLE_SSL_CIPHER;
++   }
+ 
+   SSL_CTX_set_options(backend->ctx, ctx_options);
+ 
+@@ -3705,6 +3983,37 @@
+     }
+   }
+ #endif
++
++
++#ifdef HAVE_SSL_CTX_SET_VERIFY_ALGORITHM_PREFS
++  {
++    uint16_t algs[MAX_SIG_ALGS];
++    size_t nalgs;
++    /* Set the signature algorithms (TLS extension 13).
++     * See net/socket/ssl_client_socket_impl.cc in Chromium's source. */
++    char *sig_hash_algs = conn_config->sig_hash_algs;
++    if(sig_hash_algs) {
++      CURLcode result = parse_sig_algs(data, sig_hash_algs, algs, &nalgs);
++      if(result)
++        return result;
++      if(!SSL_CTX_set_verify_algorithm_prefs(backend->ctx, algs, nalgs)) {
++        failf(data, "failed setting signature hash algorithms list: '%s'",
++              sig_hash_algs);
++        return CURLE_SSL_CIPHER;
++      }
++    }
++    else {
++      /* Use defaults from Chrome. */
++      if(!SSL_CTX_set_verify_algorithm_prefs(backend->ctx,
++                                              default_sig_algs,
++                                              DEFAULT_SIG_ALGS_LENGTH)) {
++        failf(data, "failed setting signature hash algorithms list: '%s'",
++              sig_hash_algs);
++        return CURLE_SSL_CIPHER;
++      }
++    }
++  }
++#endif
+ 
+ #ifdef USE_OPENSSL_SRP
+   if(ssl_config->primary.username && Curl_auth_allowed_to_host(data)) {
+@@ -3776,6 +4085,22 @@
+ 
+   SSL_set_app_data(backend->handle, cf);
+ 
++  if(cf->conn->bits.tls_sig_cert_ts)
++    SSL_enable_signed_cert_timestamps(backend->handle);
++  if(cf->conn->bits.tls_enable_ocsp)
++    SSL_enable_ocsp_stapling(backend->handle);
++  SSL_set_shed_handshake_config(backend->handle,
++    cf->conn->bits.tls_shed_hs_cfg);
++#if defined(HAS_ALPN) && defined(USE_HTTP2)
++    if(cf->conn->bits.tls_enable_alps && cf->conn->bits.tls_enable_alpn &&
++      (data->state.httpwant == CURL_HTTP_VERSION_2 ||
++      data->state.httpwant == CURL_HTTP_VERSION_2TLS)) {
++        SSL_add_application_settings(backend->handle,
++        ALPN_H2, ALPN_H2_LENGTH, NULL, 0);
++        infof(data, "ALPS, offering %s", ALPN_H2);
++    }
++#endif
++
+ #if (OPENSSL_VERSION_NUMBER >= 0x0090808fL) && !defined(OPENSSL_NO_TLSEXT) && \
+     !defined(OPENSSL_NO_OCSP)
+   if(conn_config->verifystatus)
+Index: lib/vtls/vtls.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/lib/vtls/vtls.c b/lib/vtls/vtls.c
+--- a/lib/vtls/vtls.c	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/lib/vtls/vtls.c	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -155,6 +155,8 @@
+      strcasecompare(data->cipher_list, needle->cipher_list) &&
+      strcasecompare(data->cipher_list13, needle->cipher_list13) &&
+      strcasecompare(data->curves, needle->curves) &&
++     strcasecompare(data->cert_compression, needle->cert_compression) &&
++     strcasecompare(data->sig_hash_algs, needle->sig_hash_algs) &&
+      strcasecompare(data->CRLfile, needle->CRLfile) &&
+      strcasecompare(data->pinned_key, needle->pinned_key))
+     return TRUE;
+@@ -185,6 +187,8 @@
+   CLONE_STRING(cipher_list13);
+   CLONE_STRING(pinned_key);
+   CLONE_STRING(curves);
++  CLONE_STRING(cert_compression);
++  CLONE_STRING(sig_hash_algs);
+   CLONE_STRING(CRLfile);
+ #ifdef USE_TLS_SRP
+   CLONE_STRING(username);
+@@ -207,6 +211,8 @@
+   Curl_safefree(sslc->ca_info_blob);
+   Curl_safefree(sslc->issuercert_blob);
+   Curl_safefree(sslc->curves);
++  Curl_safefree(sslc->cert_compression);
++  Curl_safefree(sslc->sig_hash_algs);
+   Curl_safefree(sslc->CRLfile);
+ #ifdef USE_TLS_SRP
+   Curl_safefree(sslc->username);
+Index: packages/OS400/ccsidcurl.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/packages/OS400/ccsidcurl.c b/packages/OS400/ccsidcurl.c
+--- a/packages/OS400/ccsidcurl.c	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/packages/OS400/ccsidcurl.c	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -1125,6 +1125,7 @@
+   case CURLOPT_FTP_ACCOUNT:
+   case CURLOPT_FTP_ALTERNATIVE_TO_USER:
+   case CURLOPT_HSTS:
++  case CURLOPT_HTTP2_FINGERPRINT:
+   case CURLOPT_INTERFACE:
+   case CURLOPT_ISSUERCERT:
+   case CURLOPT_KEYPASSWD:
+Index: projects/Windows/VC10/lib/libcurl.vcxproj
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/projects/Windows/VC10/lib/libcurl.vcxproj b/projects/Windows/VC10/lib/libcurl.vcxproj
+--- a/projects/Windows/VC10/lib/libcurl.vcxproj	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/projects/Windows/VC10/lib/libcurl.vcxproj	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -2390,6 +2390,7 @@
+     <ClCompile Include="..\..\..\..\lib\hostsyn.c" />
+     <ClCompile Include="..\..\..\..\lib\hsts.c" />
+     <ClCompile Include="..\..\..\..\lib\http2.c" />
++    <ClCompile Include="..\..\..\..\lib\http2_fp.c" />
+     <ClCompile Include="..\..\..\..\lib\http_aws_sigv4.c" />
+     <ClCompile Include="..\..\..\..\lib\http.c" />
+     <ClCompile Include="..\..\..\..\lib\http_chunks.c" />
+@@ -2561,6 +2562,7 @@
+     <ClInclude Include="..\..\..\..\lib\hostip.h" />
+     <ClInclude Include="..\..\..\..\lib\hsts.h" />
+     <ClInclude Include="..\..\..\..\lib\http2.h" />
++    <ClInclude Include="..\..\..\..\lib\http2_fp.h" />
+     <ClInclude Include="..\..\..\..\lib\http_aws_sigv4.h" />
+     <ClInclude Include="..\..\..\..\lib\http_chunks.h" />
+     <ClInclude Include="..\..\..\..\lib\http_digest.h" />
+Index: projects/Windows/VC11/lib/libcurl.vcxproj
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/projects/Windows/VC11/lib/libcurl.vcxproj b/projects/Windows/VC11/lib/libcurl.vcxproj
+--- a/projects/Windows/VC11/lib/libcurl.vcxproj	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/projects/Windows/VC11/lib/libcurl.vcxproj	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -2446,6 +2446,7 @@
+     <ClCompile Include="..\..\..\..\lib\hostsyn.c" />
+     <ClCompile Include="..\..\..\..\lib\hsts.c" />
+     <ClCompile Include="..\..\..\..\lib\http2.c" />
++    <ClCompile Include="..\..\..\..\lib\http2_fp.c" />
+     <ClCompile Include="..\..\..\..\lib\http_aws_sigv4.c" />
+     <ClCompile Include="..\..\..\..\lib\http.c" />
+     <ClCompile Include="..\..\..\..\lib\http_chunks.c" />
+@@ -2617,6 +2618,7 @@
+     <ClInclude Include="..\..\..\..\lib\hostip.h" />
+     <ClInclude Include="..\..\..\..\lib\hsts.h" />
+     <ClInclude Include="..\..\..\..\lib\http2.h" />
++    <ClInclude Include="..\..\..\..\lib\http2_fp.h" />
+     <ClInclude Include="..\..\..\..\lib\http_aws_sigv4.h" />
+     <ClInclude Include="..\..\..\..\lib\http_chunks.h" />
+     <ClInclude Include="..\..\..\..\lib\http_digest.h" />
+Index: projects/Windows/VC12/lib/libcurl.vcxproj
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/projects/Windows/VC12/lib/libcurl.vcxproj b/projects/Windows/VC12/lib/libcurl.vcxproj
+--- a/projects/Windows/VC12/lib/libcurl.vcxproj	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/projects/Windows/VC12/lib/libcurl.vcxproj	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -2446,6 +2446,7 @@
+     <ClCompile Include="..\..\..\..\lib\hostsyn.c" />
+     <ClCompile Include="..\..\..\..\lib\hsts.c" />
+     <ClCompile Include="..\..\..\..\lib\http2.c" />
++    <ClCompile Include="..\..\..\..\lib\http2_fp.c" />
+     <ClCompile Include="..\..\..\..\lib\http_aws_sigv4.c" />
+     <ClCompile Include="..\..\..\..\lib\http.c" />
+     <ClCompile Include="..\..\..\..\lib\http_chunks.c" />
+@@ -2617,6 +2618,7 @@
+     <ClInclude Include="..\..\..\..\lib\hostip.h" />
+     <ClInclude Include="..\..\..\..\lib\hsts.h" />
+     <ClInclude Include="..\..\..\..\lib\http2.h" />
++    <ClInclude Include="..\..\..\..\lib\http2_fp.h" />
+     <ClInclude Include="..\..\..\..\lib\http_aws_sigv4.h" />
+     <ClInclude Include="..\..\..\..\lib\http_chunks.h" />
+     <ClInclude Include="..\..\..\..\lib\http_digest.h" />
+Index: projects/Windows/VC14.10/lib/libcurl.vcxproj
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/projects/Windows/VC14.10/lib/libcurl.vcxproj b/projects/Windows/VC14.10/lib/libcurl.vcxproj
+--- a/projects/Windows/VC14.10/lib/libcurl.vcxproj	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/projects/Windows/VC14.10/lib/libcurl.vcxproj	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -2418,6 +2418,7 @@
+     <ClCompile Include="..\..\..\..\lib\hostsyn.c" />
+     <ClCompile Include="..\..\..\..\lib\hsts.c" />
+     <ClCompile Include="..\..\..\..\lib\http2.c" />
++    <ClCompile Include="..\..\..\..\lib\http2_fp.c" />
+     <ClCompile Include="..\..\..\..\lib\http_aws_sigv4.c" />
+     <ClCompile Include="..\..\..\..\lib\http.c" />
+     <ClCompile Include="..\..\..\..\lib\http_chunks.c" />
+@@ -2588,7 +2589,7 @@
+     <ClInclude Include="..\..\..\..\lib\headers.h" />
+     <ClInclude Include="..\..\..\..\lib\hostip.h" />
+     <ClInclude Include="..\..\..\..\lib\hsts.h" />
+-    <ClInclude Include="..\..\..\..\lib\http2.h" />
++    <ClInclude Include="..\..\..\..\lib\http2_fp.h" />
+     <ClInclude Include="..\..\..\..\lib\http_aws_sigv4.h" />
+     <ClInclude Include="..\..\..\..\lib\http_chunks.h" />
+     <ClInclude Include="..\..\..\..\lib\http_digest.h" />
+Index: projects/Windows/VC14.30/lib/libcurl.vcxproj
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/projects/Windows/VC14.30/lib/libcurl.vcxproj b/projects/Windows/VC14.30/lib/libcurl.vcxproj
+--- a/projects/Windows/VC14.30/lib/libcurl.vcxproj	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/projects/Windows/VC14.30/lib/libcurl.vcxproj	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -2418,6 +2418,7 @@
+     <ClCompile Include="..\..\..\..\lib\hostsyn.c" />
+     <ClCompile Include="..\..\..\..\lib\hsts.c" />
+     <ClCompile Include="..\..\..\..\lib\http2.c" />
++    <ClCompile Include="..\..\..\..\lib\http2_fp.c" />
+     <ClCompile Include="..\..\..\..\lib\http_aws_sigv4.c" />
+     <ClCompile Include="..\..\..\..\lib\http.c" />
+     <ClCompile Include="..\..\..\..\lib\http_chunks.c" />
+@@ -2589,6 +2590,7 @@
+     <ClInclude Include="..\..\..\..\lib\hostip.h" />
+     <ClInclude Include="..\..\..\..\lib\hsts.h" />
+     <ClInclude Include="..\..\..\..\lib\http2.h" />
++    <ClInclude Include="..\..\..\..\lib\http2_fp.h" />
+     <ClInclude Include="..\..\..\..\lib\http_aws_sigv4.h" />
+     <ClInclude Include="..\..\..\..\lib\http_chunks.h" />
+     <ClInclude Include="..\..\..\..\lib\http_digest.h" />
+Index: projects/Windows/VC14/lib/libcurl.vcxproj
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/projects/Windows/VC14/lib/libcurl.vcxproj b/projects/Windows/VC14/lib/libcurl.vcxproj
+--- a/projects/Windows/VC14/lib/libcurl.vcxproj	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/projects/Windows/VC14/lib/libcurl.vcxproj	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -2446,6 +2446,7 @@
+     <ClCompile Include="..\..\..\..\lib\hostsyn.c" />
+     <ClCompile Include="..\..\..\..\lib\hsts.c" />
+     <ClCompile Include="..\..\..\..\lib\http2.c" />
++    <ClCompile Include="..\..\..\..\lib\http2_fp.c" />
+     <ClCompile Include="..\..\..\..\lib\http_aws_sigv4.c" />
+     <ClCompile Include="..\..\..\..\lib\http.c" />
+     <ClCompile Include="..\..\..\..\lib\http_chunks.c" />
+@@ -2617,6 +2618,7 @@
+     <ClInclude Include="..\..\..\..\lib\hostip.h" />
+     <ClInclude Include="..\..\..\..\lib\hsts.h" />
+     <ClInclude Include="..\..\..\..\lib\http2.h" />
++    <ClInclude Include="..\..\..\..\lib\http2_fp.h" />
+     <ClInclude Include="..\..\..\..\lib\http_aws_sigv4.h" />
+     <ClInclude Include="..\..\..\..\lib\http_chunks.h" />
+     <ClInclude Include="..\..\..\..\lib\http_digest.h" />
+Index: src/tool_cfgable.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/tool_cfgable.c b/src/tool_cfgable.c
+--- a/src/tool_cfgable.c	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/src/tool_cfgable.c	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -144,6 +144,9 @@
+   Curl_safefree(config->unix_socket_path);
+   Curl_safefree(config->writeout);
+   Curl_safefree(config->proto_default);
++  Curl_safefree(config->http2_fp);
++  Curl_safefree(config->cert_compression);
++  Curl_safefree(config->sig_hash_algs);
+ 
+   curl_slist_free_all(config->quote);
+   curl_slist_free_all(config->postquote);
+Index: src/tool_cfgable.h
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/tool_cfgable.h b/src/tool_cfgable.h
+--- a/src/tool_cfgable.h	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/src/tool_cfgable.h	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -162,6 +162,9 @@
+   char *ssl_ec_curves;
+   char *krblevel;
+   char *request_target;
++  char *http2_fp;
++  char *cert_compression;
++  char *sig_hash_algs;
+   long httpversion;
+   bool http09_allowed;
+   bool nobuffer;
+@@ -266,6 +269,15 @@
+   bool proxy_ssl_auto_client_cert; /* proxy version of ssl_auto_client_cert */
+   char *oauth_bearer;             /* OAuth 2.0 bearer token */
+   bool noalpn;                    /* enable/disable TLS ALPN extension */
++  bool ssl_npn;                    /* enable/disable TLS NPN extension */
++  bool ssl_grease;                    /* enable/disable TLS GREASE */
++  bool ssl_alps;                    /* enable/disable TLS ALPS extension */
++  bool ssl_ocsp;                    /* enable/disable TLS OCSP */
++  bool ssl_no_ticket;                /* enable/disable TLS
++                                        session ticket extension */
++  bool ssl_permute_ext;               /* permute TLS extension */
++  bool ssl_sig_cert_ts;               /* TLS sign cert timestamps extension */
++  bool ssl_shed_hs_cfg;               /* TLS shared handshake configuration */
+   char *unix_socket_path;         /* path to Unix domain socket */
+   bool abstract_unix_socket;      /* path to an abstract Unix domain socket */
+   bool falsestart;
+Index: src/tool_getparam.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/tool_getparam.c b/src/tool_getparam.c
+--- a/src/tool_getparam.c	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/src/tool_getparam.c	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -285,6 +285,16 @@
+   {"EC", "etag-save",                ARG_FILENAME},
+   {"ED", "etag-compare",             ARG_FILENAME},
+   {"EE", "curves",                   ARG_STRING},
++  {"EH", "http2-fp",                 ARG_STRING},
++  {"EI", "cert-compression",         ARG_STRING},
++  {"EJ", "signature-hash-algorithm", ARG_STRING},
++  {"EK", "alps",                     ARG_BOOL},
++  {"EL", "grease",                   ARG_BOOL},
++  {"EM", "ocsp-stapling",            ARG_BOOL},
++  {"EN", "no-tls-ticket",            ARG_BOOL},
++  {"ER", "permute-ext",              ARG_BOOL},
++  {"ET", "share-handshake-config",   ARG_BOOL},
++  {"EU", "sign-cert-timestamps",     ARG_BOOL},
+   {"f",  "fail",                     ARG_BOOL},
+   {"fa", "fail-early",               ARG_BOOL},
+   {"fb", "styled-output",            ARG_BOOL},
+@@ -864,7 +874,7 @@
+         global->tracetype = TRACE_BIN;
+         break;
+       case 'G': /* --npn */
+-        warnf(global, "--npn is no longer supported\n");
++        config->ssl_npn = toggle;
+         break;
+       case 'h': /* --trace-ascii */
+         GetStr(&global->trace_dump, nextarg);
+@@ -1945,6 +1955,46 @@
+       case 'E':
+         GetStr(&config->ssl_ec_curves, nextarg);
+         break;
++
++      case 'H':
++        GetStr(&config->http2_fp, nextarg);
++        break;
++
++      case 'I':
++        GetStr(&config->cert_compression, nextarg);
++        break;
++
++      case 'J':
++        GetStr(&config->sig_hash_algs, nextarg);
++        break;
++
++      case 'K':
++        config->ssl_alps = toggle;
++        break;
++
++      case 'L':
++        config->ssl_grease = toggle;
++        break;
++
++      case 'M':
++        config->ssl_ocsp = toggle;
++        break;
++
++      case 'N':
++        config->ssl_no_ticket = toggle;
++        break;
++
++      case 'R':
++        config->ssl_permute_ext = toggle;
++        break;
++
++      case 'T':
++        config->ssl_shed_hs_cfg = toggle;
++        break;
++
++      case 'U':
++        config->ssl_sig_cert_ts = toggle;
++        break;
+ 
+       default: /* unknown flag */
+         return PARAM_OPTION_UNKNOWN;
+Index: src/tool_listhelp.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/tool_listhelp.c b/src/tool_listhelp.c
+--- a/src/tool_listhelp.c	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/src/tool_listhelp.c	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -276,6 +276,9 @@
+   {"    --http2",
+    "Use HTTP 2",
+    CURLHELP_HTTP},
++  {"    --http2-fp",
++   "set HTTP2 fingerprint",
++   CURLHELP_HTTP},
+   {"    --http2-prior-knowledge",
+    "Use HTTP 2 without HTTP/1.1 Upgrade",
+    CURLHELP_HTTP},
+Index: src/tool_operate.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/tool_operate.c b/src/tool_operate.c
+--- a/src/tool_operate.c	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/src/tool_operate.c	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -1574,6 +1574,45 @@
+         if(config->ssl_ec_curves)
+           my_setopt_str(curl, CURLOPT_SSL_EC_CURVES, config->ssl_ec_curves);
+ 
++        if(config->http2_fp)
++          my_setopt_str(curl, CURLOPT_HTTP2_FINGERPRINT, config->http2_fp);
++
++        if(config->sig_hash_algs)
++          my_setopt_str(curl, CURLOPT_SSL_SIG_HASH_ALGS,
++           config->sig_hash_algs);
++
++        if(config->cert_compression)
++          my_setopt_str(curl, CURLOPT_SSL_CERT_COMPRESSION,
++           config->cert_compression);
++
++        if(config->ssl_grease)
++          my_setopt(curl, CURLOPT_SSL_ENABLE_GREASE,
++           config->ssl_grease);
++
++        if(config->ssl_alps)
++          my_setopt(curl, CURLOPT_SSL_ENABLE_ALPS,
++           config->ssl_alps);
++
++        if(config->ssl_permute_ext)
++          my_setopt(curl, CURLOPT_SSL_PERMUTE_EXT,
++           config->ssl_permute_ext);
++
++        if(config->ssl_no_ticket)
++          my_setopt(curl, CURLOPT_SSL_NO_TICKET,
++           config->ssl_no_ticket);
++
++        if(config->ssl_sig_cert_ts)
++          my_setopt(curl, CURLOPT_SSL_SIG_CERT_TS,
++           config->ssl_sig_cert_ts);
++
++        if(config->ssl_ocsp)
++          my_setopt(curl, CURLOPT_SSL_ENABLE_OCSP,
++           config->ssl_ocsp);
++
++        if(config->ssl_shed_hs_cfg)
++          my_setopt(curl, CURLOPT_SSL_SHED_HS_CFG,
++           config->ssl_shed_hs_cfg);
++
+         if(config->writeout)
+           my_setopt_str(curl, CURLOPT_CERTINFO, 1L);
+ 
+Index: src/tool_setopt.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/tool_setopt.c b/src/tool_setopt.c
+--- a/src/tool_setopt.c	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
++++ b/src/tool_setopt.c	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+@@ -153,6 +153,7 @@
+   NV1(CURLOPT_SSL_VERIFYHOST, 1),
+   NV1(CURLOPT_SSL_ENABLE_NPN, 1),
+   NV1(CURLOPT_SSL_ENABLE_ALPN, 1),
++
+   NV1(CURLOPT_TCP_NODELAY, 1),
+   NV1(CURLOPT_PROXY_SSL_VERIFYPEER, 1),
+   NV1(CURLOPT_PROXY_SSL_VERIFYHOST, 1),
+diff --git a/docs/curl.1 b/docs/curl.1
+deleted file mode 100644
+index ca7e5413b1d313e54b7ed6cbc3cceec412da3051..0000000000000000000000000000000000000000
+GIT binary patch
+literal 0
+Hc$@<O00001
+
