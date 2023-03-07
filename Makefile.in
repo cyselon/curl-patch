@@ -23,7 +23,7 @@ LIBIDN2_VERSION := 2.3.4
 LIBIDN2 := libidn2-$(LIBIDN2_VERSION)
 LIBIDN2_URL := https://gitlab.com/libidn/libidn2/uploads/54f6d239283bbdc75d4dbd732ced04e4/$(LIBIDN2).tar.gz
 
- # In case this is changed, update build-and-test-make.yml as well
+# In case this is changed, update build-and-test-make.yml as well
 NSS_VERSION := nss-3.88
 NSS_URL := https://ftp.mozilla.org/pub/security/nss/releases/NSS_3_88_RTM/src/nss-3.88-with-nspr-4.35.tar.gz
 
@@ -223,15 +223,15 @@ $(boringssl_static_libs): boringssl.tar.gz
 	cp -Rf ../include .
 
 $(CARES).tar.gz:
-    curl -L $(CARES_URL) -o $(CARES).tar.gz
+	curl -L $(CARES_URL) -o $(CARES).tar.gz
 
 $(cares_static_libs): $(CARES).tar.gz
 	tar -xf $(CARES).tar.gz
-    cd $(CARES)
-    ./configure --prefix=$(cares_install_dir)
+	cd $(CARES)
+	./configure --prefix=$(cares_install_dir)
 
 $(LIBIDN2).tar.gz:
-    curl -L $(LIBIDN2_URL) -o $(LIBIDN2).tar.gz
+	curl -L $(LIBIDN2_URL) -o $(LIBIDN2).tar.gz
 
 $(libidn2_static_libs): $(LIBIDN2).tar.gz
 	tar -xf $(LIBIDN2).tar.gz
@@ -243,8 +243,8 @@ $(LIBPSL).tar.gz:
 
 $(libpsl_static_libs): $(LIBPSL).tar.gz
 	tar -xf $(LIBPSL).tar.gz
-    cd $(LIBPSL)
-    ./configure --prefix=$(libpsl_install_dir) --enable-asan --enable-ubsan
+	cd $(LIBPSL)
+	./configure --prefix=$(libpsl_install_dir) --enable-asan --enable-ubsan
 
 $(NGHTTP2).tar.bz2:
 	curl -L $(NGHTTP2_URL) -o $(NGHTTP2).tar.bz2
