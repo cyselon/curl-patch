@@ -8,7 +8,8 @@ BROTLI_VERSION := 1.0.9
 BORINGSSL_COMMIT := 28f96c2686459add7acedcd97cb841030bdda019
 BORINGSSL_BRANCH := chromium-stable
 NGHTTP2_VERSION := 1.51.0
-NGHTTP2_URL := https://github.com/nghttp2/nghttp2/releases/download/v1.51.0/nghttp2-1.51.0.tar.bz2
+NGHTTP2 := nghttp2-$(NGHTTP2_VERSION)
+NGHTTP2_URL := https://github.com/nghttp2/nghttp2/releases/download/v$(NGHTTP2_VERSION)/nghttp2-$(NGHTTP2_VERSION).tar.bz2
 
  # In case this is changed, update build-and-test-make.yml as well
 NSS_VERSION := nss-3.88
@@ -22,7 +23,7 @@ nss_install_dir := $(abspath $(NSS_VERSION)/dist/Release)
 nss_static_libs := $(nss_install_dir)/lib/libnss_static.a
 boringssl_install_dir := $(abspath boringssl/build)
 boringssl_static_libs := $(boringssl_install_dir)/lib/libssl.a $(boringssl_install_dir)/lib/libcrypto.a
-nghttp2_install_dir := $(abspath $(NGHTTP2_VERSION)/installed)
+nghttp2_install_dir := $(abspath $(NGHTTP2)/installed)
 nghttp2_static_libs := $(nghttp2_install_dir)/lib/libnghttp2.a
 
 # Dependencies needed to compile the Chrome version
@@ -110,7 +111,7 @@ clean: ## Remove all build artifacts, including dependencies
 	rm -Rf brotli-$(BROTLI_VERSION).tar.gz brotli-$(BROTLI_VERSION)
 	rm -Rf $(NSS_VERSION).tar.gz $(NSS_VERSION)
 	rm -Rf boringssl.tar.gz boringssl
-	rm -Rf $(NGHTTP2_VERSION).tar.bz2 $(NGHTTP2_VERSION)
+	rm -Rf $(NGHTTP2).tar.bz2 $(NGHTTP2)
 	rm -Rf $(CURL_VERSION).tar.xz $(CURL_VERSION)
 
 brotli-$(BROTLI_VERSION).tar.gz:
@@ -197,12 +198,12 @@ $(boringssl_static_libs): boringssl.tar.gz
 	cp -Rf ../include .
 
 
-$(NGHTTP2_VERSION).tar.bz2:
-	curl -L $(NGHTTP2_URL) -o $(NGHTTP2_VERSION).tar.bz2
+$(NGHTTP2).tar.bz2:
+	curl -L $(NGHTTP2_URL) -o $(NGHTTP2).tar.bz2
 
-$(nghttp2_static_libs): $(NGHTTP2_VERSION).tar.bz2
-	tar -xf $(NGHTTP2_VERSION).tar.bz2
-	cd $(NGHTTP2_VERSION)
+$(nghttp2_static_libs): $(NGHTTP2).tar.bz2
+	tar -xf $(NGHTTP2).tar.bz2
+	cd $(NGHTTP2)
 
 	# Set up the configure flags to nghttp2.
 	# If the user provided the --host flag to our configure script
