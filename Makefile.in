@@ -157,8 +157,8 @@ boringssl.tar.gz:
 		-o boringssl.tar.gz
 
 $(boringssl_static_libs): boringssl.tar.gz
-	tar xf boringssl.tar.gz
 	mkdir -p $(boringssl_install_dir)
+	tar -xf boringssl.tar.gz -C $(boringssl_install_dir)/..
 	cd $(boringssl_install_dir)
 
 
