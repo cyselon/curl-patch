@@ -406,8 +406,8 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 ===================================================================
 diff --git a/lib/http2_fp.c b/lib/http2_fp.c
 new file mode 100644
---- /dev/null	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
-+++ b/lib/http2_fp.c	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
+--- /dev/null	(revision a7852cda92cd40f7aca5f63322613139d7a48b96)
++++ b/lib/http2_fp.c	(revision a7852cda92cd40f7aca5f63322613139d7a48b96)
 @@ -0,0 +1,245 @@
 +/***************************************************************************
 + *                                  _   _ ____  _
@@ -487,7 +487,7 @@ new file mode 100644
 +  if(type > 6 || type < 1)
 +    return 0;
 +  iv->settings_id = type;
-+  iv->value = strtol(p + 2, NULL, 10);
++  iv->value = strtoul(p + 2, NULL, 10);
 +  return 1;
 +}
 +
@@ -503,7 +503,7 @@ new file mode 100644
 +    num++;
 +  return num;
 +}
-+
++/*
 +static uint32_t get_initial_window_size(
 +  const nghttp2_settings_entry *iv, size_t ivlen)
 +{
@@ -514,7 +514,7 @@ new file mode 100644
 +  }
 +  return HTTP2_HUGE_WINDOW_SIZE;
 +}
-+/*
++
 +static int parse_priorities(h2h3_fingerprint *fp, const char *str)
 +{
 +  size_t len, i;
@@ -536,7 +536,7 @@ new file mode 100644
 +  if(!fp->priorities)
 +    return 1;
 +  if(len == 1) {
-+    fp->priorities[0].weight = strtol(str, NULL, 10);
++    fp->priorities[0].weight = strtoul(str, NULL, 10);
 +    return 0;
 +  }
 +  for(i = 0, cp = str; i < len && *cp && *cp != '|'; i++) {
@@ -580,13 +580,13 @@ new file mode 100644
 +    }
 +    /* parse window update and priority */
 +    if(*p == '|') {
-+      fp->window_size_increment = strtol(p + 1, ZERO_NULL, 10);
++      fp->window_size_increment = strtoul(p + 1, ZERO_NULL, 10);
 +      p++;
 +    }
 +    while(*p && *p!= '|')
 +      p++;
 +    if(*p == '|')
-+      fp->priority = strtol(p + 1, NULL, 10);
++      fp->priority = strtoul(p + 1, NULL, 10);
 +    /* parse header order */
 +    if(*p == '|') {
 +        /*
@@ -661,9 +661,9 @@ Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
 ===================================================================
 diff --git a/lib/http2_fp.h b/lib/http2_fp.h
 new file mode 100644
---- /dev/null	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
-+++ b/lib/http2_fp.h	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
-@@ -0,0 +1,51 @@
+--- /dev/null	(revision a7852cda92cd40f7aca5f63322613139d7a48b96)
++++ b/lib/http2_fp.h	(revision a7852cda92cd40f7aca5f63322613139d7a48b96)
+@@ -0,0 +1,52 @@
 +#ifndef HEADER_CURL_HTTP2_FP_H
 +#define HEADER_CURL_HTTP2_FP_H
 +/***************************************************************************
@@ -695,6 +695,7 @@ new file mode 100644
 +#ifdef USE_NGHTTP2
 +
 +#include <nghttp2/nghttp2.h>
++#include "h2h3.h"
 +
 +typedef struct
 +{
@@ -1588,20 +1589,3 @@ diff --git a/src/tool_operate.c b/src/tool_operate.c
          if(config->writeout)
            my_setopt_str(curl, CURLOPT_CERTINFO, 1L);
  
-Index: src/tool_setopt.c
-IDEA additional info:
-Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
-<+>UTF-8
-===================================================================
-diff --git a/src/tool_setopt.c b/src/tool_setopt.c
---- a/src/tool_setopt.c	(revision e9eb45919fbb4bdd41e6ea9a5da886cea78aa2d8)
-+++ b/src/tool_setopt.c	(revision 18e7d7ab4dd7951a0c1fb33702a74658fdc9341e)
-@@ -153,6 +153,7 @@
-   NV1(CURLOPT_SSL_VERIFYHOST, 1),
-   NV1(CURLOPT_SSL_ENABLE_NPN, 1),
-   NV1(CURLOPT_SSL_ENABLE_ALPN, 1),
-+
-   NV1(CURLOPT_TCP_NODELAY, 1),
-   NV1(CURLOPT_PROXY_SSL_VERIFYPEER, 1),
-   NV1(CURLOPT_PROXY_SSL_VERIFYHOST, 1),
-
