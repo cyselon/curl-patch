@@ -151,11 +151,11 @@ $(nss_static_libs): $(NSS_VERSION).tar.gz
 	tar xf $(NSS_VERSION).tar.gz
 
 boringssl.tar.gz:
-	curl -L https://boringssl.googlesource.com/boringssl/+archive/$(BORING_SSL_COMMIT).tar.gz \
+	curl -L https://boringssl.googlesource.com/boringssl/+archive/$(BORINGSSL_COMMIT).tar.gz \
 		-o boringssl.tar.gz
 
 $(boringssl_static_libs): boringssl.tar.gz
-    tar xf boringssl.tar.gz
+	tar xf boringssl.tar.gz
 	mkdir -p $(boringssl_install_dir)
 	cd $(boringssl_install_dir)
 
