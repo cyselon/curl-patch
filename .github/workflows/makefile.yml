@@ -18,7 +18,7 @@ jobs:
       run: sudo apt-get install -y autoconf gcc g++ libtool cmake curl
       
     - name: configure
-      run: autoconf -if && ./configure
+      run: autoconf -i -f && ./configure
 
     - name: Build
       run: make chrome-build
