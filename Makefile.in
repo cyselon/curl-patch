@@ -132,14 +132,13 @@ $(brotli_static_libs): brotli-$(BROTLI_VERSION).tar.gz
 	    ;;                       \
 	esac
 
-	@cmake@ -DCMAKE_BUILD_TYPE=Release \
+	@cmake@ .. -DCMAKE_BUILD_TYPE=Release \
 	        -DCMAKE_INSTALL_PREFIX=./installed \
 	        -DCMAKE_INSTALL_LIBDIR=lib \
 	        -DCMAKE_CXX_COMPILER=$(CXX) \
 	        -DCMAKE_C_COMPILER=$(CC) \
 	        -DCMAKE_SYSTEM_NAME=$$system_name \
-	        -DCMAKE_SYSTEM_PROCESSOR=$(host_cpu) \
-	        ..
+	        -DCMAKE_SYSTEM_PROCESSOR=$(host_cpu)
 
 	@cmake@ --build . --config Release --target install
 
@@ -177,15 +176,15 @@ $(boringssl_static_libs): boringssl.tar.gz
 	# compile in release mode on some systems with gcc 12 (e.g. Fedora).
 	# In addition, guard these options with -Wno-unknown-warning-option to
 	# prevent clang from failing on them.
-	@cmake@ -DCMAKE_BUILD_TYPE=Release \
+	@cmake@ .. -DCMAKE_BUILD_TYPE=Release \
 			-DCMAKE_POSITION_INDEPENDENT_CODE=on \
 			-DCMAKE_C_FLAGS="-Wno-unknown-warning-option -Wno-stringop-overflow -Wno-array-bounds" \
 			-DCMAKE_CXX_COMPILER=$(CXX) \
 			-DCMAKE_C_COMPILER=$(CC) \
 			-DCMAKE_SYSTEM_NAME=$$system_name \
 			-DCMAKE_SYSTEM_PROCESSOR=$(host_cpu) \
-			-GNinja \
-			..
+			-GNinja
+
 	@ninja@
 	# Fix the directory structure so that curl can compile against it.
 	# See https://everything.curl.dev/source/build/tls/boringssl
