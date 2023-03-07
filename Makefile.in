@@ -226,7 +226,7 @@ $(CARES).tar.gz:
     curl -L $(CARES_URL) -o $(CARES).tar.gz
 
 $(cares_static_libs): $(CARES).tar.gz
-    tar -xf $(CARES).tar.gz
+	tar -xf $(CARES).tar.gz
     cd $(CARES)
     ./configure --prefix=$(cares_install_dir)
 
@@ -234,15 +234,15 @@ $(LIBIDN2).tar.gz:
     curl -L $(LIBIDN2_URL) -o $(LIBIDN2).tar.gz
 
 $(libidn2_static_libs): $(LIBIDN2).tar.gz
-    tar -xf $(LIBIDN2).tar.gz
-    cd $(LIBIDN2)
-    ./configure --prefix=$(libidn2_install_dir)
+	tar -xf $(LIBIDN2).tar.gz
+	cd $(LIBIDN2)
+	./configure --prefix=$(libidn2_install_dir)
 
 $(LIBPSL).tar.gz:
-    curl -L $(LIBPSL_URL) -o $(LIBPSL).tar.gz
+	curl -L $(LIBPSL_URL) -o $(LIBPSL).tar.gz
 
 $(libpsl_static_libs): $(LIBPSL).tar.gz
-    tar -xf $(LIBPSL).tar.gz
+	tar -xf $(LIBPSL).tar.gz
     cd $(LIBPSL)
     ./configure --prefix=$(libpsl_install_dir) --enable-asan --enable-ubsan
 
