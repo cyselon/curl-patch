@@ -1,3 +1,4 @@
+---
 name: Makefile CI
 
 on:
@@ -15,27 +16,30 @@ jobs:
       GOPATH: /tmp/go/go
 
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: install dependencies
-      run: sudo apt-get install -y autoconf gcc g++ libtool cmake curl ninja-build python3 python3-pip pkg-config libunistring-dev
+      - uses: actions/checkout@v3
 
-    - name: install gyp
-      run: sudo python3 -m pip install gyp-next
+      - name: install dependencies
+        run: >
+        sudo apt-get install -y autoconf gcc g++ libtool
+         cmake curl ninja-build python3 python3-pip
+         pkg-config libunistring-dev
 
-    - name: install golang
-      run: |
-        curl -L https://go.dev/dl/go1.20.1.linux-amd64.tar.gz -o go1.20.1.linux-amd64.tar.gz
-        mkdir -p /tmp/go
-        tar -xf go1.20.1.linux-amd64.tar.gz -C /tmp/go/
-        echo "$GOPATH/bin" >> $GITHUB_PATH
-      
-    - name: configure
-      run: autoconf -i -f && ./configure
+      - name: install gyp
+        run: sudo python3 -m pip install gyp-next
 
-    - name: Build
-      run: make chrome-build
+      - name: install golang
+        run: |
+          curl -L https://go.dev/dl/go1.20.1.linux-amd64.tar.gz -o go1.20.1.linux-amd64.tar.gz
+          mkdir -p /tmp/go
+          tar -xf go1.20.1.linux-amd64.tar.gz -C /tmp/go/
+          echo "$GOPATH/bin" >> $GITHUB_PATH
 
-    - name: Run check
-      run: make chrome-checkbuild
+      - name: configure
+        run: autoconf -i -f && ./configure
+
+      - name: Build
+        run: make chrome-build
+
+      - name: Run check
+        run: make chrome-checkbuild
 
