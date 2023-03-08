@@ -9,7 +9,7 @@ on:
 jobs:
   linux-release:
     permissions:
-        content: read|write
+        contents: read|write
     runs-on: ubuntu-latest
 
     env:
