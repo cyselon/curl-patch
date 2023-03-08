@@ -337,7 +337,7 @@ $(CURL_VERSION)/.chrome: $(chrome_libs)	$(CURL_VERSION).tar.xz $(CURL_VERSION)/.
 
 	echo "Configuring curl with: $$config_flags"
 	echo "cflags:  $$add_cflags"
-	echo "ldflags: $$add_ldlags"
+	echo "ldflags: $$add_ldflags"
 	echo "libs:    $$add_libs"
 
 	./configure $$config_flags LDFLAGS="$$add_ldflags" CFLAGS="$$add_cflags" LIBS="$$add_libs"
