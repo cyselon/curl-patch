@@ -235,17 +235,17 @@ $(libidn2_static_libs): $(LIBIDN2).tar.gz
 	cd $(LIBIDN2)
 	./configure --prefix=$(libidn2_install_dir) --enable-shared=no \
 	--enable-doc=no CFLAGS=-fPIC
-    case $(host_os) in      \
-    linux*)                 \
-        	sed -i '/#define HAVE_SYMVER_ALIAS_SUPPORT 1/d' config.h \
-    ;;                    \
-    darwin*)              \
-        	sed -i'' '/#define HAVE_SYMVER_ALIAS_SUPPORT 1/d' config.h \
-    ;;                  \
-    *)                    \
-            sed -i '/#define HAVE_SYMVER_ALIAS_SUPPORT 1/d' config.h \
-    ;;                  \
-    esac
+	case $(host_os) in      \
+	linux*)                 \
+	    	sed -i '/#define HAVE_SYMVER_ALIAS_SUPPORT 1/d' config.h \
+	;;                    \
+	darwin*)              \
+	    	sed -i'' '/#define HAVE_SYMVER_ALIAS_SUPPORT 1/d' config.h \
+	;;                  \
+	*)                    \
+	        sed -i '/#define HAVE_SYMVER_ALIAS_SUPPORT 1/d' config.h \
+	;;                  \
+	esac
 
 	$(MAKE) MAKEFLAGS=
 	$(MAKE) install MAKEFLAGS=
