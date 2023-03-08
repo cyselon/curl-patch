@@ -12,19 +12,19 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-      os: [ ubuntu-20.04, macos-12 ]
-      arch: [ x86_64 ]
-      include:
-        - os: ubuntu-20.04
-          arch: x86_64
-          host: x86_64-linux-gnu
-          make: make
-          name: linux
-        - os: macos-12
-          arch: x86_64
-          host: x86_64-macos
-          make: make
-          name: macos
+        os: [ubuntu-20.04, macos-12]
+        arch: [x86_64]
+        include:
+          - os: ubuntu-20.04
+            arch: x86_64
+            host: x86_64-linux-gnu
+            make: make
+            name: linux
+          - os: macos-12
+            arch: x86_64
+            host: x86_64-macos
+            make: make
+            name: macos
     env:
       GODIR: /tmp/go
       prefix: /tmp/curl
