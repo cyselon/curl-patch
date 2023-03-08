@@ -13,7 +13,7 @@ AC_CHECK_TOOL([STRIP], [strip])
 
 AC_ARG_ENABLE([static],
     [AS_HELP_STRING([--enable-static],
-        [Build curl-impersonate statically with libcurl-impersonate])],
+        [Build curl statically with libcurl])],
     [AC_SUBST([static_build], ["$enableval"])],
     [AC_SUBST([static_build], ["no"])])
 

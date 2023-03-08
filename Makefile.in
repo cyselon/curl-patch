@@ -186,13 +186,13 @@ $(boringssl_static_libs): boringssl.tar.gz
 	# Convert autoconf style os name to CMake style os name.
 	case $(host_os) in      \
 	linux*)               \
-	system_name=Linux   \
+	    system_name=Linux   \
 	;;                  \
 	darwin*)              \
-	system_name=Darwin  \
+	    system_name=Darwin  \
 	;;                  \
 	*)                    \
-	system_name=Linux   \
+	    system_name=Linux   \
 	;;                  \
 	esac
 
