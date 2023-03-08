@@ -49,7 +49,7 @@ jobs:
     - name: Package
       run: |
            cd /tmp/curl
-           tar cjf curl-patch-$GIT_TAG_NAME-linux-amd64.tar.bz2 bin include lib share
+           tar cjf curl-patch-$GIT_TAG_NAME-linux-amd64.tar.bz2 bin lib
 
     - name: Create Release
       id: create_release
