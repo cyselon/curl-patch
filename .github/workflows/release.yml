@@ -3,7 +3,7 @@ name: Release CI
 on:
   create:
     tags:
-      - "*"
+      - "v*"
 
 jobs:
   linux-release:
@@ -30,11 +30,30 @@ jobs:
         echo "$GOPATH/bin" >> $GITHUB_PATH
       
     - name: configure
-      run: autoconf -i -f && ./configure
+      run: autoconf -i -f && ./configure --prefix=/tmp/curl
 
     - name: Build
       run: make chrome-build
 
     - name: Run check
       run: make chrome-checkbuild
+
+    - name: Run Install
+      run: make chrome-install-strip
+
+    - name: Get the version
+      uses: olegtarasov/get-tag@v2.1.2
+      id: tagName
+
+    - name: Package
+      run: |
+           cd /tmp/curl
+           tar cjf curl-patch-$GIT_TAG_NAME-linux-amd64.tar.bz2 bin include lib share
+
+    - name: Upload package
+      uses: d1ceward/draft-assets-release-action@v2
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+          files: /tmp/curl-patch-$GIT_TAG_NAME-linux-amd64.tar.bz2
+
 
