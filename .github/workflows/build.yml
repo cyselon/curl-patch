@@ -4,39 +4,102 @@ name: Build CI
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
 
 jobs:
-  build:
-
-    runs-on: ubuntu-latest
-
+  release:
+    permissions:
+        contents: write
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+      os: [ ubuntu-20.04, macos-11 ]
+      arch: [ x86_64 ]
+      include:
+        - os: ubuntu-20.04
+          arch: x86_64
+          host: x86_64-linux-gnu
+          make: make
+          name: linux
+        - os: macos-12
+          arch: x86_64
+          host: x86_64-macos
+          make: make
+          name: macos
     env:
-      GOPATH: /tmp/go/go
+      GODIR: /tmp/go
+      prefix: /tmp/curl
 
     steps:
-      - uses: actions/checkout@v3
+    - uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
 
-      - name: install dependencies
-        run: sudo apt-get install -y autoconf gcc g++ libtool cmake curl ninja-build python3 python3-pip pkg-config libunistring-dev
+    - name: Install Ubuntu Dependencies
+      if: matrix.os == 'ubuntu-20.04'
+      run: |
+      sudo apt-get install -y autoconf gcc g++ libtool
+      sudo apt-get install -y cmake curl ninja-build libzip-dev
+      sudo apt-get install -y pkg-config libunistring-dev
+      sudo python3 -m pip install gyp-next
+      curl -L https://go.dev/dl/go1.20.1.linux-amd64.tar.gz -o go1.20.1.linux-amd64.tar.gz
+      mkdir -p $GODIR
+      tar -xf go1.20.1.linux-amd64.tar.gz -C $GODIR
+      echo "$GODIR/go/bin" >> $GITHUB_PATH
 
-      - name: install gyp
-        run: sudo python3 -m pip install gyp-next
+    - name: Install MacOS Dependencies
+      if: matrix.os == 'macos-12'
+      run: |
+      brew install autoconf gcc g++ libtool automake
+      brew install cmake curl ninja make pkg-config libunistring
+      python3 -m pip install gyp-next
 
-      - name: install golang
-        run: |
-          curl -L https://go.dev/dl/go1.20.1.linux-amd64.tar.gz -o go1.20.1.linux-amd64.tar.gz
-          mkdir -p /tmp/go
-          tar -xf go1.20.1.linux-amd64.tar.gz -C /tmp/go/
-          echo "$GOPATH/bin" >> $GITHUB_PATH
+    - uses: actions/checkout@v3
 
-      - name: configure
-        run: autoconf -i -f && ./configure
+    - name: configure
+      run: autoconf -i -f && ./configure --prefix=${{ env.prefix }}
 
-      - name: Build
-        run: make chrome-build
+    - name: Build
+      run: make chrome-build
 
-      - name: Run check
-        run: make chrome-checkbuild
+    - name: Run check
+      run: make chrome-checkbuild
 
+    - name: Run Install
+      if: startsWith(github.ref, 'refs/tags/')
+      run: make chrome-install-strip
+
+    - name: Get the version
+      uses: olegtarasov/get-tag@v2.1.2
+      if: startsWith(github.ref, 'refs/tags/')
+      id: tagName
+
+    - name: Package
+      if: startsWith(github.ref, 'refs/tags/')
+      run: |
+           cd ${{ env.prefix }}
+           tar cjf curl-patch-$GIT_TAG_NAME-${{ matrix.name }}-${{ matrix.arch }}.tar.bz2 bin lib
+           echo "release_file=curl-patch-$GIT_TAG_NAME-${{ matrix.name }}-${{ matrix.arch }}.tar.bz2" >> $GITHUB_ENV
+
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/')
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ steps.tagName.outputs.tag }}
+        release_name: Release ${{ steps.tagName.outputs.tag }}
+        draft: false
+        prerelease: false
+
+    - name: Upload Release Asset
+      if: startsWith(github.ref, 'refs/tags/')
+      id: upload-release-asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ env.prefix }}/${{ env.release_file }}
+        asset_name: ${{ env.release_file }}
+        asset_content_type: application/x-bzip
