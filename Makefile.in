@@ -76,6 +76,11 @@ help: ## Show this help message
 .PHONY: help
 .DEFAULT_GOAL := help
 
+all: chrome-build
+test: chrome-checkbuild
+clean: chrome-clean
+.PHONY: all test clean
+
 chrome-build: $(CURL_VERSION)/.chrome ## Build the Chrome version of curl-impersonate
 	cd $(CURL_VERSION)
 	# Don't pass this Makefile's MAKEFLAGS
@@ -124,14 +129,10 @@ chrome-clean: ## Clean build artifacts of the Chrome version. Use after re-runni
 .PHONY: chrome-clean
 
 clean: ## Remove all build artifacts, including dependencies
-	rm -Rf brotli-$(BROTLI_VERSION).tar.gz brotli-$(BROTLI_VERSION)
-	rm -Rf $(NSS_VERSION).tar.gz $(NSS_VERSION)
-	rm -Rf boringssl.tar.gz boringssl
-	rm -Rf $(NGHTTP2).tar.bz2 $(NGHTTP2)
-	rm -Rf $(CARES).tar.gz $(CARES)
-	rm -Rf $(LIBIDN2).tar.gz $(LIBIDN2)
-	rm -Rf $(LIBPSL).tar.gz $(LIBPSL)
-	rm -Rf $(CURL_VERSION).tar.xz $(CURL_VERSION)
+	rm -Rf brotli-$(BROTLI_VERSION).tar.gz brotli-$(BROTLI_VERSION) \
+	 $(NSS_VERSION).tar.gz $(NSS_VERSION) boringssl.tar.gz boringssl $(NGHTTP2).tar.bz2 $(NGHTTP2) \
+	 $(CARES).tar.gz $(CARES)  $(LIBIDN2).tar.gz $(LIBIDN2)  $(LIBPSL).tar.gz $(LIBPSL) \
+	 $(CURL_VERSION).tar.xz $(CURL_VERSION)
 
 brotli-$(BROTLI_VERSION).tar.gz:
 	curl -L "https://github.com/google/brotli/archive/refs/tags/v${BROTLI_VERSION}.tar.gz" \
