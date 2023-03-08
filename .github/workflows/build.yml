@@ -7,7 +7,7 @@ on:
   tags:
     - "v*.*.*"
 jobs:
-  release:
+  build:
     permissions:
         contents: write
     runs-on: ${{ matrix.os }}
@@ -50,7 +50,7 @@ jobs:
     - name: Install MacOS Dependencies
       if: matrix.os == 'macos-12'
       run: |
-        brew install autoconf gcc g++ libtool automake
+        brew install autoconf libtool automake
         brew install cmake curl ninja make pkg-config libunistring
         python3 -m pip install gyp-next
 
