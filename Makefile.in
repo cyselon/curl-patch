@@ -336,7 +336,7 @@ $(CURL_VERSION)/.chrome: $(chrome_libs)	$(CURL_VERSION).tar.xz $(CURL_VERSION)/.
 
 	./configure $$config_flags LDFLAGS="$$add_ldflags" CPPFLAGS="$$add_cppflags" LIBS="$$add_libs"
 
-    grep -C4 -I 'psl_builtin' config.log
+    grep -C4 'psl_builtin' config.log
 
 	# Remove possible leftovers from a previous compilation
 	$(MAKE) clean MAKEFLAGS=
