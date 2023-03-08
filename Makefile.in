@@ -135,7 +135,7 @@ clean: ## Remove all build artifacts, including dependencies
 
 brotli-$(BROTLI_VERSION).tar.gz:
 	curl -L "https://github.com/google/brotli/archive/refs/tags/v${BROTLI_VERSION}.tar.gz" \
-		-o "brotli-${BROTLI_VERSION}.tar.gz"
+	-o "brotli-${BROTLI_VERSION}.tar.gz"
 
 $(brotli_static_libs): brotli-$(BROTLI_VERSION).tar.gz
 	tar xf brotli-$(BROTLI_VERSION).tar.gz
@@ -174,7 +174,7 @@ $(nss_static_libs): $(NSS_VERSION).tar.gz
 
 boringssl.tar.gz:
 	curl -L https://boringssl.googlesource.com/boringssl/+archive/$(BORINGSSL_COMMIT).tar.gz \
-		-o boringssl.tar.gz
+	-o boringssl.tar.gz
 
 $(boringssl_static_libs): boringssl.tar.gz
 	mkdir -p $(boringssl_install_dir)
@@ -184,15 +184,15 @@ $(boringssl_static_libs): boringssl.tar.gz
 
 	# Convert autoconf style os name to CMake style os name.
 	case $(host_os) in      \
-	  linux*)               \
-	    system_name=Linux   \
-	    ;;                  \
-	  darwin*)              \
-	    system_name=Darwin  \
-	    ;;                  \
-	  *)                    \
-	    system_name=Linux   \
-	    ;;                  \
+	linux*)               \
+	system_name=Linux   \
+	;;                  \
+	darwin*)              \
+	system_name=Darwin  \
+	;;                  \
+	*)                    \
+	system_name=Linux   \
+	;;                  \
 	esac
 
 	# The extra CMAKE_C_FLAGS are needed because otherwise boringssl fails to
@@ -274,7 +274,7 @@ $(nghttp2_static_libs): $(NGHTTP2).tar.bz2
 
 $(CURL_VERSION).tar.xz:
 	curl -L "https://curl.se/download/$(CURL_VERSION).tar.xz" \
-		-o "$(CURL_VERSION).tar.xz"
+	-o "$(CURL_VERSION).tar.xz"
 
 # Apply the "Chorme version" patches and mark using a dummy file
 $(CURL_VERSION)/.patched-chrome: $(srcdir)/curl/curl.patch
@@ -336,7 +336,7 @@ $(CURL_VERSION)/.chrome: $(chrome_libs)	$(CURL_VERSION).tar.xz $(CURL_VERSION)/.
 
 	./configure $$config_flags LDFLAGS="$$add_ldflags" CPPFLAGS="$$add_cppflags" LIBS="$$add_libs"
 
-    grep -C4 'psl_builtin' config.log
+	grep -C4 'psl_builtin' config.log
 
 	# Remove possible leftovers from a previous compilation
 	$(MAKE) clean MAKEFLAGS=
