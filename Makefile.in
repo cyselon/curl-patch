@@ -235,7 +235,18 @@ $(libidn2_static_libs): $(LIBIDN2).tar.gz
 	cd $(LIBIDN2)
 	./configure --prefix=$(libidn2_install_dir) --enable-shared=no \
 	--enable-doc=no CFLAGS=-fPIC
-	sed -i '/#define HAVE_SYMVER_ALIAS_SUPPORT 1/d' config.h
+    case $(host_os) in      \
+    linux*)                 \
+        	sed -i '/#define HAVE_SYMVER_ALIAS_SUPPORT 1/d' config.h \
+    ;;                    \
+    darwin*)              \
+        	sed -i'' '/#define HAVE_SYMVER_ALIAS_SUPPORT 1/d' config.h \
+    ;;                  \
+    *)                    \
+            sed -i '/#define HAVE_SYMVER_ALIAS_SUPPORT 1/d' config.h \
+    ;;                  \
+    esac
+
 	$(MAKE) MAKEFLAGS=
 	$(MAKE) install MAKEFLAGS=
 
@@ -327,8 +338,10 @@ $(CURL_VERSION)/.chrome: $(chrome_libs)	$(CURL_VERSION).tar.xz $(CURL_VERSION)/.
 	  add_cppflags="-I$(boringssl_install_dir)"; \
 	  add_cppflags="$$add_cppflags -I$(libpsl_install_dir)/include"; \
 	  add_cppflags="$$add_cppflags -I$(libidn2_install_dir)/include"; \
-	  add_ldflags="-L$(libpsl_install_dir)/lib"; \
-	  add_ldflags="-L$(libpsl_install_dir)/lib"; \
+	  add_cppflags="$$add_cppflags -I$(brotli_install_dir)/include"; \
+	  add_ldflags="$$add_ldflags -L$(libpsl_install_dir)/lib"; \
+	  add_ldflags="$$add_ldflags -L$(libidn2_install_dir)/lib"; \
+	  add_ldflags="$$add_ldflags -L$(brotli_install_dir)/lib"; \
 	  add_ldflags="$$add_ldflags -L$(libidn2_install_dir)/lib"; \
 	}
 
