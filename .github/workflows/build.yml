@@ -4,7 +4,8 @@ name: Build CI
 on:
   push:
     branches: [ "main" ]
-
+  tags:
+    - "v*.*.*"
 jobs:
   release:
     permissions:
