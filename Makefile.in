@@ -44,7 +44,6 @@ libpsl_static_libs := $(libpsl_install_dir)/lib/libpsl.a
 libidn2_install_dir := $(abspath $(LIBIDN2)/installed)
 libidn2_static_libs := $(libidn2_install_dir)/lib/libidn2.a
 
-
 # Dependencies needed to compile the Chrome version
 chrome_libs := $(brotli_static_libs) $(boringssl_static_libs) $(nghttp2_static_libs) $(cares_static_libs) $(libpsl_static_libs) $(libidn2_static_libs)
 
@@ -103,8 +102,6 @@ endif
 chrome-install: ## Install the Chrome version of curl after build
 	cd $(CURL_VERSION)
 	$(MAKE) install-exec MAKEFLAGS=
-	# Wrapper scripts for the Chrome version (e.g. 'curl_chrome99')
-	install $(srcdir)/chrome/curl_chrome* $(srcdir)/chrome/curl_edge* $(srcdir)/chrome/curl_safari* @bindir@
 .PHONY: chrome-install
 
 chrome-install-strip: ## Like 'chrome-install', but strip binaries for smaller size
@@ -112,15 +109,12 @@ chrome-install-strip: ## Like 'chrome-install', but strip binaries for smaller s
 	$(MAKE) install-exec MAKEFLAGS=
 	# We could have used 'install-strip' but then the docs would be installed as well.
 	# Instead strip manually.
-	$(STRIP) @bindir@/curl-impersonate-chrome
-	# Wrapper scripts for the Chrome version (e.g. 'curl_chrome99')
-	install $(srcdir)/chrome/curl_chrome* $(srcdir)/chrome/curl_edge* $(srcdir)/chrome/curl_safari* @bindir@
+	$(STRIP) @bindir@/curl
 .PHONY: chrome-install-strip
 
 chrome-uninstall: ## Uninstall the Chrome version of curl-impersonate after 'make install'
 	cd $(CURL_VERSION)
 	$(MAKE) uninstall MAKEFLAGS=
-	rm -Rf @bindir@/curl_chrome* @bindir@/curl_edge* @bindir@/curl_safari*
 .PHONY: chrome-uninstall
 
 chrome-clean: ## Clean build artifacts of the Chrome version. Use after re-running './configure'
