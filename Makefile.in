@@ -335,6 +335,7 @@ $(CURL_VERSION)/.chrome: $(chrome_libs)	$(CURL_VERSION).tar.xz $(CURL_VERSION)/.
 		config_flags="$$config_flags --with-ca-path=$(with_ca_path)"; \
 	  fi; \
 	  add_libs="-pthread -lunistring -lidn2"; \
+	  add_ldflags=""; \
 	  add_cppflags="-I$(boringssl_install_dir)"; \
 	  add_cppflags="$$add_cppflags -I$(libpsl_install_dir)/include"; \
 	  add_cppflags="$$add_cppflags -I$(libidn2_install_dir)/include"; \
