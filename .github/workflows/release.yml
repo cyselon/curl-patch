@@ -1,8 +1,9 @@
 name: Release CI
 
 on:
-  release:
-    types: [ published ]
+  create:
+    tags:
+      - "*"
 
 jobs:
   linux-release:
