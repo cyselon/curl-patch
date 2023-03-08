@@ -31,27 +31,27 @@ jobs:
 
     steps:
     - uses: actions/setup-python@v4
-        with:
+      with:
           python-version: '3.10'
 
     - name: Install Ubuntu Dependencies
       if: matrix.os == 'ubuntu-20.04'
       run: |
-      sudo apt-get install -y autoconf gcc g++ libtool
-      sudo apt-get install -y cmake curl ninja-build libzip-dev
-      sudo apt-get install -y pkg-config libunistring-dev
-      sudo python3 -m pip install gyp-next
-      curl -L https://go.dev/dl/go1.20.1.linux-amd64.tar.gz -o go1.20.1.linux-amd64.tar.gz
-      mkdir -p $GODIR
-      tar -xf go1.20.1.linux-amd64.tar.gz -C $GODIR
-      echo "$GODIR/go/bin" >> $GITHUB_PATH
+        sudo apt-get install -y autoconf gcc g++ libtool
+        sudo apt-get install -y cmake curl ninja-build libzip-dev
+        sudo apt-get install -y pkg-config libunistring-dev
+        sudo python3 -m pip install gyp-next
+        curl -L https://go.dev/dl/go1.20.1.linux-amd64.tar.gz -o go1.20.1.linux-amd64.tar.gz
+        mkdir -p $GODIR
+        tar -xf go1.20.1.linux-amd64.tar.gz -C $GODIR
+        echo "$GODIR/go/bin" >> $GITHUB_PATH
 
     - name: Install MacOS Dependencies
       if: matrix.os == 'macos-12'
       run: |
-      brew install autoconf gcc g++ libtool automake
-      brew install cmake curl ninja make pkg-config libunistring
-      python3 -m pip install gyp-next
+        brew install autoconf gcc g++ libtool automake
+        brew install cmake curl ninja make pkg-config libunistring
+        python3 -m pip install gyp-next
 
     - uses: actions/checkout@v3
 
