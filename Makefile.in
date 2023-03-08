@@ -138,7 +138,7 @@ brotli-$(BROTLI_VERSION).tar.gz:
 	-o "brotli-${BROTLI_VERSION}.tar.gz"
 
 $(brotli_static_libs): brotli-$(BROTLI_VERSION).tar.gz
-	tar xf brotli-$(BROTLI_VERSION).tar.gz
+	tar --skip-old-files -xf brotli-$(BROTLI_VERSION).tar.gz
 	mkdir -p brotli-$(BROTLI_VERSION)/out
 	cd brotli-$(BROTLI_VERSION)/out
 
@@ -170,7 +170,7 @@ $(NSS_VERSION).tar.gz:
 	curl -L -o $(NSS_VERSION).tar.gz $(NSS_URL)
 
 $(nss_static_libs): $(NSS_VERSION).tar.gz
-	tar xf $(NSS_VERSION).tar.gz
+	tar --skip-old-files -xf $(NSS_VERSION).tar.gz
 
 boringssl.tar.gz:
 	curl -L https://boringssl.googlesource.com/boringssl/+archive/$(BORINGSSL_COMMIT).tar.gz \
@@ -178,7 +178,7 @@ boringssl.tar.gz:
 
 $(boringssl_static_libs): boringssl.tar.gz
 	mkdir -p $(boringssl_install_dir)
-	tar -xf boringssl.tar.gz -C $(boringssl_install_dir)/..
+	tar --skip-old-files -xf boringssl.tar.gz -C $(boringssl_install_dir)/..
 	cd $(boringssl_install_dir)
 
 
@@ -220,7 +220,7 @@ $(CARES).tar.gz:
 	curl -L $(CARES_URL) -o $(CARES).tar.gz
 
 $(cares_static_libs): $(CARES).tar.gz
-	tar -xf $(CARES).tar.gz
+	tar --skip-old-files -xf $(CARES).tar.gz
 	cd $(CARES)
 	./configure --prefix=$(cares_install_dir) --enable-shared=no
 	$(MAKE) MAKEFLAGS=
@@ -230,7 +230,7 @@ $(LIBIDN2).tar.gz:
 	curl -L $(LIBIDN2_URL) -o $(LIBIDN2).tar.gz
 
 $(libidn2_static_libs): $(LIBIDN2).tar.gz
-	tar -xf $(LIBIDN2).tar.gz
+	tar --skip-old-files -xf $(LIBIDN2).tar.gz
 	cd $(LIBIDN2)
 	./configure --prefix=$(libidn2_install_dir) --enable-shared=no \
 	--enable-doc=no CFLAGS=-fPIC
@@ -242,7 +242,7 @@ $(LIBPSL).tar.gz:
 	curl -L $(LIBPSL_URL) -o $(LIBPSL).tar.gz
 
 $(libpsl_static_libs): $(LIBPSL).tar.gz
-	tar -xf $(LIBPSL).tar.gz
+	tar --skip-old-files -xf $(LIBPSL).tar.gz
 	cd $(LIBPSL)
 	./configure --prefix=$(libpsl_install_dir) --enable-shared=no \
 	--enable-gtk-doc-html=no
@@ -253,7 +253,7 @@ $(NGHTTP2).tar.bz2:
 	curl -L $(NGHTTP2_URL) -o $(NGHTTP2).tar.bz2
 
 $(nghttp2_static_libs): $(NGHTTP2).tar.bz2
-	tar -xf $(NGHTTP2).tar.bz2
+	tar --skip-old-files -xf $(NGHTTP2).tar.bz2
 	cd $(NGHTTP2)
 
 	# Set up the configure flags to nghttp2.
@@ -279,7 +279,7 @@ $(CURL_VERSION).tar.xz:
 # Apply the "Chorme version" patches and mark using a dummy file
 $(CURL_VERSION)/.patched-chrome: $(srcdir)/curl/curl.patch
 	rm -Rf $(CURL_VERSION)
-	tar -xf $(CURL_VERSION).tar.xz
+	tar --skip-old-files -xf $(CURL_VERSION).tar.xz
 	cd $(CURL_VERSION)
 	for p in $^; do patch -p1 < $$p; done
 	# Re-generate the configure script
