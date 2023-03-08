@@ -241,11 +241,12 @@ $(libidn2_static_libs): $(LIBIDN2).tar.gz
 $(LIBPSL).tar.gz:
 	curl -L $(LIBPSL_URL) -o $(LIBPSL).tar.gz
 
-$(libpsl_static_libs): $(LIBPSL).tar.gz
+$(libpsl_static_libs): $(LIBPSL).tar.gz $(libidn2_static_libs)
 	tar --skip-old-files -xf $(LIBPSL).tar.gz
 	cd $(LIBPSL)
 	./configure --prefix=$(libpsl_install_dir) --enable-shared=no \
-	--enable-gtk-doc-html=no
+	--enable-gtk-doc-html=no --with-pic --enable-runtime=libidn2 \
+	PKG_CONFIG_PATH=$(libidn2_install_dir)/lib/pkgconfig
 	$(MAKE) MAKEFLAGS=
 	$(MAKE) install MAKEFLAGS=
 
@@ -321,10 +322,11 @@ $(CURL_VERSION)/.chrome: $(chrome_libs)	$(CURL_VERSION).tar.xz $(CURL_VERSION)/.
 	  if test -n "$(with_ca_path)"; then \
 		config_flags="$$config_flags --with-ca-path=$(with_ca_path)"; \
 	  fi; \
-	  add_libs="-pthread"; \
+	  add_libs="-pthread -lunistring -lidn2"; \
 	  add_cppflags="-I$(boringssl_install_dir)"; \
 	  add_cppflags="$$add_cppflags -I$(libpsl_install_dir)/include"; \
 	  add_cppflags="$$add_cppflags -I$(libidn2_install_dir)/include"; \
+	  add_ldflags="-L$(libpsl_install_dir)/lib"; \
 	  add_ldflags="-L$(libpsl_install_dir)/lib"; \
 	  add_ldflags="$$add_ldflags -L$(libidn2_install_dir)/lib"; \
 	}
