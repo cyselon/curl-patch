@@ -30,6 +30,10 @@ NSS_URL := https://ftp.mozilla.org/pub/security/nss/releases/NSS_3_88_RTM/src/ns
 
 CURL_VERSION := curl-7.88.1
 
+PYCURL_URL := https://files.pythonhosted.org/packages/a8/af/24d3acfa76b867dbd8f1166853c18eefc890fc5da03a48672b38ea77ddae/pycurl-7.45.2.tar.gz
+PYCURL := pycurl-7.45.2
+PYCURL_TGZ := $(PYCURL).tar.gz
+
 brotli_install_dir := $(abspath $(BROTLI)/out/installed)
 brotli_static_libs := $(brotli_install_dir)/lib/libbrotlicommon-static.a $(brotli_install_dir)/lib/libbrotlidec-static.a
 nss_install_dir := $(abspath $(NSS_VERSION)/dist/Release)
@@ -78,12 +82,12 @@ help: ## Show this help message
 .PHONY: help
 .DEFAULT_GOAL := all
 
-all: curl-patch test
-clean: clean-curl-patch
+all: curl-patch test pycurl
+clean: clean-curl-patch clean_pycurl
 install: curl-patch-install
 install-strip: curl-patch-install-strip
 uninstall: curl-patch-uninstall
-.PHONY: all test clean install uninstall
+.PHONY: all test clean install uninstall pycurl clean_pycurl
 
 curl-patch: $(CURL_VERSION)/.curl-patch ## Build curl-patch
 	cd $(CURL_VERSION)
@@ -250,14 +254,14 @@ $(CURL_VERSION).tar.xz:
 	-o "$(CURL_VERSION).tar.xz"
 
 # Apply the "Chorme version" patches and mark using a dummy file
-$(CURL_VERSION)/.patched-curl: $(srcdir)/curl/curl.patch
+$(srcdir)/.patched-curl: $(CURL_VERSION).tar.xz $(srcdir)/curl/$(CURL_VERSION).patch
 	rm -Rf $(CURL_VERSION)
 	tar -k -xf $(CURL_VERSION).tar.xz
 	cd $(CURL_VERSION)
-	for p in $^; do patch -p1 < $$p; done
+	patch -p1 < $(srcdir)/curl/$(CURL_VERSION).patch
 	# Re-generate the configure script
 	autoreconf -fi
-	touch .patched-curl
+	touch $(srcdir)/.patched-curl
 	rm -f .patched-ff
 
 # This is a small hack that flags that curl was patched and configured in the "chrome" version
@@ -317,3 +321,21 @@ $(CURL_VERSION)/.curl-patch: $(curl_libs)	$(CURL_VERSION).tar.xz $(CURL_VERSION)
 	$(MAKE) clean MAKEFLAGS=
 	touch .curl-patch
 
+$(PYCURL_TGZ):
+	curl -L $(PYCURL_URL) -o $(PYCURL_TGZ)
+
+$(srcdir)/.patched_pycurl: $(srcdir)/pycurl/$(PYCURL).patch $(PYCURL_TGZ)
+	rm -Rf $(PYCURL)
+	tar --keep-newer-files -xf $(PYCURL_TGZ)
+	cd $(PYCURL)
+	patch -p1 < $(srcdir)/pycurl/$(PYCURL).patch
+	touch $(srcdir)/.patched_pycurl
+
+pycurl: $(srcdir)/.patched_pycurl curl-patch-install
+	cd $(PYCURL)
+	CPPFLAGS="-L$(brotli_install_dir)/lib" python setup.py bdist_wheel --curl-config=@prefix@/bin/curl-config --openssl-dir=$(boringssl_install_dir)
+	ln ./dist/*.whl @prefix@/
+
+clean_pycurl:
+	rm -Rf $(PYCURL)/build
+	rm -Rf @prefix@/*.whl
