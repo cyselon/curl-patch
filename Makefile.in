@@ -5,6 +5,7 @@ SHELL := bash
 .DELETE_ON_ERROR:
 
 BROTLI_VERSION := 1.0.9
+BROTLI := brotli-$(BROTLI_VERSION)
 BORINGSSL_COMMIT := 28f96c2686459add7acedcd97cb841030bdda019
 
 NGHTTP2_VERSION := 1.51.0
@@ -29,7 +30,7 @@ NSS_URL := https://ftp.mozilla.org/pub/security/nss/releases/NSS_3_88_RTM/src/ns
 
 CURL_VERSION := curl-7.88.1
 
-brotli_install_dir := $(abspath brotli-$(BROTLI_VERSION)/out/installed)
+brotli_install_dir := $(abspath $(BROTLI)/out/installed)
 brotli_static_libs := $(brotli_install_dir)/lib/libbrotlicommon-static.a $(brotli_install_dir)/lib/libbrotlidec-static.a
 nss_install_dir := $(abspath $(NSS_VERSION)/dist/Release)
 nss_static_libs := $(nss_install_dir)/lib/libnss_static.a
@@ -45,7 +46,7 @@ libidn2_install_dir := $(abspath $(LIBIDN2)/installed)
 libidn2_static_libs := $(libidn2_install_dir)/lib/libidn2.a
 
 # Dependencies needed to compile the Chrome version
-chrome_libs := $(brotli_static_libs) $(boringssl_static_libs) $(nghttp2_static_libs) $(cares_static_libs) $(libpsl_static_libs) $(libidn2_static_libs)
+curl_libs := $(brotli_static_libs) $(boringssl_static_libs) $(nghttp2_static_libs) $(cares_static_libs) $(libpsl_static_libs) $(libidn2_static_libs)
 
 # The following variables will be set by the configure script.
 prefix = @prefix@
@@ -64,6 +65,7 @@ with_zlib = @with_zlib@
 with_ca_bundle = @with_ca_bundle@
 # Path to be passed to curl's --with-ca-path configure option.
 with_ca_path = @with_ca_path@
+build_system = @build_system@
 
 CC = @CC@
 CXX = @CXX@
@@ -74,20 +76,21 @@ STRIP = @STRIP@
 help: ## Show this help message
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 .PHONY: help
-.DEFAULT_GOAL := help
+.DEFAULT_GOAL := all
 
-all: chrome-build
-test: chrome-checkbuild
-clean: chrome-clean
-.PHONY: all test clean
+all: curl-patch test
+clean: clean-curl-patch
+install: curl-patch-install
+install-strip: curl-patch-install-strip
+uninstall: curl-patch-uninstall
+.PHONY: all test clean install uninstall
 
-chrome-build: $(CURL_VERSION)/.chrome ## Build the Chrome version of curl-impersonate
+curl-patch: $(CURL_VERSION)/.curl-patch ## Build curl-patch
 	cd $(CURL_VERSION)
 	# Don't pass this Makefile's MAKEFLAGS
 	$(MAKE) MAKEFLAGS=
-.PHONY: chrome-build
 
-chrome-checkbuild: ## Run basic checks on the built binary
+test: ## Run basic checks on the built binary
 ifeq ($(host),$(build))
 	cd $(CURL_VERSION)
 	# Make sure all needed features were compiled in
@@ -102,66 +105,47 @@ ifeq ($(host),$(build))
 else
 	$(info Cross compiling, skipping checkbuild)
 endif
-.PHONY: chrome-checkbuild
 
-chrome-install: ## Install the Chrome version of curl after build
+curl-patch-install: ## Install the curl-patch after build
 	cd $(CURL_VERSION)
-	$(MAKE) install-exec MAKEFLAGS=
-.PHONY: chrome-install
+	$(MAKE) install MAKEFLAGS=
 
-chrome-install-strip: ## Like 'chrome-install', but strip binaries for smaller size
+curl-patch-install-strip: ## Like 'curl-patch', but strip binaries for smaller size
 	cd $(CURL_VERSION)
-	$(MAKE) install-exec MAKEFLAGS=
+	$(MAKE) install MAKEFLAGS=
 	# We could have used 'install-strip' but then the docs would be installed as well.
 	# Instead strip manually.
 	$(STRIP) @bindir@/curl
-.PHONY: chrome-install-strip
 
-chrome-uninstall: ## Uninstall the Chrome version of curl-impersonate after 'make install'
+curl-patch-uninstall: ## Uninstall 
 	cd $(CURL_VERSION)
 	$(MAKE) uninstall MAKEFLAGS=
-.PHONY: chrome-uninstall
 
-chrome-clean: ## Clean build artifacts of the Chrome version. Use after re-running './configure'
+curl-patch-clean: ## Clean build artifacts curl-patch. Use after re-running './configure'
 	cd $(CURL_VERSION)
 	$(MAKE) clean MAKEFLAGS=
-	rm -f .chrome
-.PHONY: chrome-clean
+	rm -f .curl-patch
 
 clean: ## Remove all build artifacts, including dependencies
-	rm -Rf brotli-$(BROTLI_VERSION).tar.gz brotli-$(BROTLI_VERSION) \
+	rm -Rf $(BROTLI).tar.gz $(BROTLI) \
 	 $(NSS_VERSION).tar.gz $(NSS_VERSION) boringssl.tar.gz boringssl $(NGHTTP2).tar.bz2 $(NGHTTP2) \
 	 $(CARES).tar.gz $(CARES)  $(LIBIDN2).tar.gz $(LIBIDN2)  $(LIBPSL).tar.gz $(LIBPSL) \
 	 $(CURL_VERSION).tar.xz $(CURL_VERSION)
 
-brotli-$(BROTLI_VERSION).tar.gz:
+$(BROTLI).tar.gz:
 	curl -L "https://github.com/google/brotli/archive/refs/tags/v${BROTLI_VERSION}.tar.gz" \
-	-o "brotli-${BROTLI_VERSION}.tar.gz"
+	-o "${BROTLI}.tar.gz"
 
-$(brotli_static_libs): brotli-$(BROTLI_VERSION).tar.gz
-	tar --skip-old-files -xf brotli-$(BROTLI_VERSION).tar.gz
-	mkdir -p brotli-$(BROTLI_VERSION)/out
-	cd brotli-$(BROTLI_VERSION)/out
-
-	# Convert autoconf style os name to CMake style os name.
-	case $(host_os) in           \
-	  linux*)                    \
-	    system_name=Linux        \
-	    ;;                       \
-	  darwin*)                   \
-	    system_name=Darwin       \
-	    ;;                       \
-	  *)                         \
-	    system_name=$(host_os)   \
-	    ;;                       \
-	esac
-
+$(brotli_static_libs): $(BROTLI).tar.gz
+	tar -k -xf $(BROTLI).tar.gz
+	mkdir -p $(BROTLI)/out
+	cd $(BROTLI)/out
 	@cmake@ .. -DCMAKE_BUILD_TYPE=Release \
 	        -DCMAKE_INSTALL_PREFIX=./installed \
 	        -DCMAKE_INSTALL_LIBDIR=lib \
 	        -DCMAKE_CXX_COMPILER=$(CXX) \
 	        -DCMAKE_C_COMPILER=$(CC) \
-	        -DCMAKE_SYSTEM_NAME=$$system_name \
+	        -DCMAKE_SYSTEM_NAME=$(build_system) \
 	        -DCMAKE_SYSTEM_PROCESSOR=$(host_cpu)
 
 	@cmake@ --build . --config Release --target install
@@ -171,7 +155,7 @@ $(NSS_VERSION).tar.gz:
 	curl -L -o $(NSS_VERSION).tar.gz $(NSS_URL)
 
 $(nss_static_libs): $(NSS_VERSION).tar.gz
-	tar --skip-old-files -xf $(NSS_VERSION).tar.gz
+	tar -k -xf $(NSS_VERSION).tar.gz
 
 boringssl.tar.gz:
 	curl -L https://boringssl.googlesource.com/boringssl/+archive/$(BORINGSSL_COMMIT).tar.gz \
@@ -179,22 +163,8 @@ boringssl.tar.gz:
 
 $(boringssl_static_libs): boringssl.tar.gz
 	mkdir -p $(boringssl_install_dir)
-	tar --skip-old-files -xf boringssl.tar.gz -C $(boringssl_install_dir)/..
+	tar -k -xf boringssl.tar.gz -C $(boringssl_install_dir)/..
 	cd $(boringssl_install_dir)
-
-
-	# Convert autoconf style os name to CMake style os name.
-	case $(host_os) in      \
-	linux*)               \
-	    system_name=Linux   \
-	;;                  \
-	darwin*)              \
-	    system_name=Darwin  \
-	;;                  \
-	*)                    \
-	    system_name=Linux   \
-	;;                  \
-	esac
 
 	# The extra CMAKE_C_FLAGS are needed because otherwise boringssl fails to
 	# compile in release mode on some systems with gcc 12 (e.g. Fedora).
@@ -205,7 +175,7 @@ $(boringssl_static_libs): boringssl.tar.gz
 			-DCMAKE_C_FLAGS="-Wno-unknown-warning-option -Wno-stringop-overflow -Wno-array-bounds" \
 			-DCMAKE_CXX_COMPILER=$(CXX) \
 			-DCMAKE_C_COMPILER=$(CC) \
-			-DCMAKE_SYSTEM_NAME=$$system_name \
+			-DCMAKE_SYSTEM_NAME=$(build_system) \
 			-DCMAKE_SYSTEM_PROCESSOR=$(host_cpu) \
 			-GNinja
 
@@ -221,7 +191,7 @@ $(CARES).tar.gz:
 	curl -L $(CARES_URL) -o $(CARES).tar.gz
 
 $(cares_static_libs): $(CARES).tar.gz
-	tar --skip-old-files -xf $(CARES).tar.gz
+	tar -k -xf $(CARES).tar.gz
 	cd $(CARES)
 	./configure --prefix=$(cares_install_dir) --enable-shared=no
 	$(MAKE) MAKEFLAGS=
@@ -231,21 +201,11 @@ $(LIBIDN2).tar.gz:
 	curl -L $(LIBIDN2_URL) -o $(LIBIDN2).tar.gz
 
 $(libidn2_static_libs): $(LIBIDN2).tar.gz
-	tar --skip-old-files -xf $(LIBIDN2).tar.gz
+	tar -k -xf $(LIBIDN2).tar.gz
 	cd $(LIBIDN2)
 	./configure --prefix=$(libidn2_install_dir) --enable-shared=no \
 	--enable-doc=no CFLAGS=-fPIC
-	case $(host_os) in      \
-	linux*)                 \
-	    	sed -i '/#define HAVE_SYMVER_ALIAS_SUPPORT 1/d' config.h \
-	;;                    \
-	darwin*)              \
-	    	sed -i'' '/#define HAVE_SYMVER_ALIAS_SUPPORT 1/d' config.h \
-	;;                  \
-	*)                    \
-	        sed -i '/#define HAVE_SYMVER_ALIAS_SUPPORT 1/d' config.h \
-	;;                  \
-	esac
+	@SED@ '/#define HAVE_SYMVER_ALIAS_SUPPORT 1/d' config.h
 
 	$(MAKE) MAKEFLAGS=
 	$(MAKE) install MAKEFLAGS=
@@ -254,7 +214,7 @@ $(LIBPSL).tar.gz:
 	curl -L $(LIBPSL_URL) -o $(LIBPSL).tar.gz
 
 $(libpsl_static_libs): $(LIBPSL).tar.gz $(libidn2_static_libs)
-	tar --skip-old-files -xf $(LIBPSL).tar.gz
+	tar -k -xf $(LIBPSL).tar.gz
 	cd $(LIBPSL)
 	./configure --prefix=$(libpsl_install_dir) --enable-shared=no \
 	--enable-gtk-doc-html=no --with-pic --enable-runtime=libidn2 \
@@ -266,7 +226,7 @@ $(NGHTTP2).tar.bz2:
 	curl -L $(NGHTTP2_URL) -o $(NGHTTP2).tar.bz2
 
 $(nghttp2_static_libs): $(NGHTTP2).tar.bz2
-	tar --skip-old-files -xf $(NGHTTP2).tar.bz2
+	tar -k -xf $(NGHTTP2).tar.bz2
 	cd $(NGHTTP2)
 
 	# Set up the configure flags to nghttp2.
@@ -290,18 +250,18 @@ $(CURL_VERSION).tar.xz:
 	-o "$(CURL_VERSION).tar.xz"
 
 # Apply the "Chorme version" patches and mark using a dummy file
-$(CURL_VERSION)/.patched-chrome: $(srcdir)/curl/curl.patch
+$(CURL_VERSION)/.patched-curl: $(srcdir)/curl/curl.patch
 	rm -Rf $(CURL_VERSION)
-	tar --skip-old-files -xf $(CURL_VERSION).tar.xz
+	tar -k -xf $(CURL_VERSION).tar.xz
 	cd $(CURL_VERSION)
 	for p in $^; do patch -p1 < $$p; done
 	# Re-generate the configure script
 	autoreconf -fi
-	touch .patched-chrome
+	touch .patched-curl
 	rm -f .patched-ff
 
 # This is a small hack that flags that curl was patched and configured in the "chrome" version
-$(CURL_VERSION)/.chrome: $(chrome_libs)	$(CURL_VERSION).tar.xz $(CURL_VERSION)/.patched-chrome
+$(CURL_VERSION)/.curl-patch: $(curl_libs)	$(CURL_VERSION).tar.xz $(CURL_VERSION)/.patched-curl
 	cd $(CURL_VERSION)
 
 	# Set up the configure flags to curl.
@@ -334,7 +294,7 @@ $(CURL_VERSION)/.chrome: $(chrome_libs)	$(CURL_VERSION).tar.xz $(CURL_VERSION)/.
 	  if test -n "$(with_ca_path)"; then \
 		config_flags="$$config_flags --with-ca-path=$(with_ca_path)"; \
 	  fi; \
-	  add_libs="-pthread -lunistring -lidn2"; \
+	  add_libs="@LIBS@ -pthread -lunistring -lidn2"; \
 	  add_ldflags=""; \
 	  add_cppflags="-I$(boringssl_install_dir)"; \
 	  add_cppflags="$$add_cppflags -I$(libpsl_install_dir)/include"; \
@@ -353,9 +313,7 @@ $(CURL_VERSION)/.chrome: $(chrome_libs)	$(CURL_VERSION).tar.xz $(CURL_VERSION)/.
 
 	./configure $$config_flags LDFLAGS="$$add_ldflags" CPPFLAGS="$$add_cppflags" LIBS="$$add_libs"
 
-	grep -C4 'psl_builtin' config.log
-
 	# Remove possible leftovers from a previous compilation
 	$(MAKE) clean MAKEFLAGS=
-	touch .chrome
+	touch .curl-patch
 

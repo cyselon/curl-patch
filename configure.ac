@@ -1,7 +1,7 @@
 
 AC_PREREQ(2.59)
 
-AC_INIT([curl], [7.88.1], [cyselon@gmail.com])
+AC_INIT([curl-patch], [7.88.1], [cyselon@gmail.com])
 
 AC_CANONICAL_BUILD
 AC_CANONICAL_HOST
@@ -58,6 +58,26 @@ AC_ARG_WITH([ca-path],
     [AC_SUBST([with_ca_path], ["$withval"])],
     [AC_SUBST([with_ca_path], [""])])
 
+# build system
+AC_SUBST([build_system],[""])
+AC_SUBST([SED], ["sed -i"])
+# Detect the target system
+case "${host_os}" in
+    linux*)
+        AC_SUBST([build_system],["Linux"])
+        ;;
+    cygwin*|mingw*)
+        AC_SUBST([build_system],["Windows"])
+        ;;
+    darwin*)
+        AC_SUBST([build_system],["Darwin"])
+        AC_SUBST([SED], ["sed -i ''"])
+        ;;
+    *)
+        AC_MSG_ERROR(["OS $host_os is not supported"])
+        ;;
+esac
+
 # BoringSSL requires cmake 3.5+, which is sometimes available under
 # "cmake3" instead of "cmake"
 AC_CHECK_PROGS([cmake], [cmake3 cmake])
@@ -67,3 +87,20 @@ AC_CHECK_PROGS([ninja], [ninja ninja-build])
 AC_CONFIG_FILES([Makefile])
 
 AC_OUTPUT
+
+AC_MSG_NOTICE(Configure to curl-patch:
+
+            prefix:   ${prefix}
+              host:   ${host}
+            CLFAGS:   ${CLFAGS}
+          CPPLFAGS:   ${CPPLFAGS}
+              LIBS:   ${LIBS}
+curl patch version:   ${version}
+    ca cert bundle:   ${with_ca_bundle}
+      ca cert path:   ${with_ca_path}
+      static_build:   ${static_build}
+         with_zlib:   ${with_zlib}
+      build_system:   ${build_system}
+               SED:   ${SED}
+
+)
