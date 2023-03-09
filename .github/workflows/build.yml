@@ -7,14 +7,33 @@ on:
     tags:
       - "v*.*.*"
 jobs:
-  build:
+  release:
+    runs-on: ubuntu-latest
     permissions:
-        contents: write
+      contents: write
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Create Release
+        if: github.ref_type == 'tag'
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+  build:
+    needs: release
+    permissions:
+      contents: write
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-12]
-        arch: [x86_64]
+        os: [ ubuntu-20.04, macos-12 ]
+        arch: [ x86_64 ]
         include:
           - os: ubuntu-20.04
             arch: x86_64
@@ -32,89 +51,72 @@ jobs:
       prefix: /tmp/curl
 
     steps:
-    - uses: actions/setup-python@v4
-      with:
+      - uses: actions/setup-python@v4
+        with:
           python-version: '3.9'
 
-    - name: Install Ubuntu Dependencies
-      if: matrix.os == 'ubuntu-20.04'
-      run: |
-        sudo apt-get install -y autoconf gcc g++ libtool
-        sudo apt-get install -y cmake curl ninja-build libzip-dev
-        sudo apt-get install -y pkg-config libunistring-dev
-        sudo python3 -m pip install -U gyp-next wheel setuptools
-        curl -L https://go.dev/dl/go1.20.1.linux-amd64.tar.gz -o go1.20.1.linux-amd64.tar.gz
-        mkdir -p $GODIR
-        tar -xf go1.20.1.linux-amd64.tar.gz -C $GODIR
-        echo "$GODIR/go/bin" >> $GITHUB_PATH
+      - name: Install Ubuntu Dependencies
+        if: matrix.os == 'ubuntu-20.04'
+        run: |
+          sudo apt-get install -y autoconf gcc g++ libtool
+          sudo apt-get install -y cmake curl ninja-build libzip-dev
+          sudo apt-get install -y pkg-config libunistring-dev
+          sudo python3 -m pip install -U gyp-next wheel setuptools
+          curl -L https://go.dev/dl/go1.20.1.linux-amd64.tar.gz -o go1.20.1.linux-amd64.tar.gz
+          mkdir -p $GODIR
+          tar -xf go1.20.1.linux-amd64.tar.gz -C $GODIR
+          echo "$GODIR/go/bin" >> $GITHUB_PATH
 
-    - name: Install MacOS Dependencies
-      if: matrix.os == 'macos-12'
-      run: |
-        brew install autoconf libtool automake libunistring
-        brew install cmake curl ninja make pkg-config icu4c
-        python3 -m pip install -U setuptools pip
-        python3 -m pip install -U gyp-next wheel check-wheel-contents
+      - name: Install MacOS Dependencies
+        if: matrix.os == 'macos-12'
+        run: |
+          brew install autoconf libtool automake libunistring
+          brew install cmake curl ninja make pkg-config icu4c
+          python3 -m pip install -U setuptools pip
+          python3 -m pip install -U gyp-next wheel check-wheel-contents
 
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: configure
-      run: autoconf -i -f && ./configure --prefix=${{ env.prefix }} LIBS="${{ matrix.libs }}"
+      - name: configure
+        run: autoconf -i -f && ./configure --prefix=${{ env.prefix }} LIBS="${{ matrix.libs }}"
 
-    - name: Build
-      run: ${{matrix.make}} all
+      - name: Build
+        run: ${{matrix.make}} all
 
-    - name: Run Install
-      if: startsWith(github.ref, 'refs/tags/')
-      run: |
-        ${{matrix.make}} install
-        ${{matrix.make}} pycurl
+      - name: Run Install
+        if: github.ref_type == 'tag'
+        run: |
+          ${{matrix.make}} install
+          ${{matrix.make}} pycurl
 
-    - name: Get the version
-      uses: olegtarasov/get-tag@v2.1.2
-      if: startsWith(github.ref, 'refs/tags/')
-      id: tagName
+      - name: Package
+        if: github.ref_type == 'tag'
+        run: |
+          cd ${{ env.prefix }}
+          tar cjf curl-patch-${{ github.ref_name }}-${{ matrix.name }}-${{ matrix.arch }}.tar.bz2 bin lib
+          echo "release_file=curl-patch-${{ github.ref_name }}-${{ matrix.name }}-${{ matrix.arch }}.tar.bz2" >> $GITHUB_ENV
+          ls -rt ${{ env.prefix }}/*.whl | tail -n 1 | sed 's:^.*/:pycurl_release_file=:' >> $GITHUB_ENV
 
-    - name: Package
-      if: startsWith(github.ref, 'refs/tags/')
-      run: |
-           cd ${{ env.prefix }}
-           tar cjf curl-patch-$GIT_TAG_NAME-${{ matrix.name }}-${{ matrix.arch }}.tar.bz2 bin lib
-           echo "release_file=curl-patch-$GIT_TAG_NAME-${{ matrix.name }}-${{ matrix.arch }}.tar.bz2" >> $GITHUB_ENV
-           ls -rt ${{ env.prefix }}/*.whl | tail -n 1 | sed 's:^.*/:pycurl_release_file=:' >> $GITHUB_ENV
+      - name: Upload Curl Release Asset
+        if: github.ref_type == 'tag'
+        id: upload-curl-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: ${{ env.prefix }}/${{ env.release_file }}
+          asset_name: ${{ env.release_file }}
+          asset_content_type: application/x-bzip
 
-    - name: Create Release
-      if: startsWith(github.ref, 'refs/tags/')
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ steps.tagName.outputs.tag }}
-        release_name: Release ${{ steps.tagName.outputs.tag }}
-        draft: false
-        prerelease: false
-
-    - name: Upload Curl Release Asset
-      if: startsWith(github.ref, 'refs/tags/')
-      id: upload-curl-release-asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ${{ env.prefix }}/${{ env.release_file }}
-        asset_name: ${{ env.release_file }}
-        asset_content_type: application/x-bzip
-
-    - name: Upload Pycurl Release Asset
-      if: startsWith(github.ref, 'refs/tags/')
-      id: upload-pycurl-release-asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: ${{ env.prefix }}/${{ env.pycurl_release_file }}
-        asset_name: ${{ env.pycurl_release_file }}
-        asset_content_type: application/zip
+      - name: Upload Pycurl Release Asset
+        if: github.ref_type == 'tag'
+        id: upload-pycurl-release-asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: ${{ env.prefix }}/${{ env.pycurl_release_file }}
+          asset_name: ${{ env.pycurl_release_file }}
+          asset_content_type: application/zip
