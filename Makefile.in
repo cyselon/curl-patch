@@ -89,7 +89,7 @@ install-strip: curl-patch-install-strip
 uninstall: curl-patch-uninstall
 .PHONY: all test clean install uninstall pycurl clean_pycurl
 
-curl-patch: $(CURL_VERSION)/.curl-patch ## Build curl-patch
+curl-patch: $(srcdir)/.curl-patch ## Build curl-patch
 	cd $(CURL_VERSION)
 	# Don't pass this Makefile's MAKEFLAGS
 	$(MAKE) MAKEFLAGS=
@@ -110,11 +110,11 @@ else
 	$(info Cross compiling, skipping checkbuild)
 endif
 
-curl-patch-install: ## Install the curl-patch after build
+curl-patch-install: curl-patch ## Install the curl-patch after build
 	cd $(CURL_VERSION)
 	$(MAKE) install MAKEFLAGS=
 
-curl-patch-install-strip: ## Like 'curl-patch', but strip binaries for smaller size
+curl-patch-install-strip: curl-patch ## Like 'curl-patch', but strip binaries for smaller size
 	cd $(CURL_VERSION)
 	$(MAKE) install MAKEFLAGS=
 	# We could have used 'install-strip' but then the docs would be installed as well.
@@ -125,23 +125,23 @@ curl-patch-uninstall: ## Uninstall
 	cd $(CURL_VERSION)
 	$(MAKE) uninstall MAKEFLAGS=
 
-curl-patch-clean: ## Clean build artifacts curl-patch. Use after re-running './configure'
+clean-curl-patch: ## Clean build artifacts curl-patch. Use after re-running './configure'
 	cd $(CURL_VERSION)
 	$(MAKE) clean MAKEFLAGS=
-	rm -f .curl-patch
 
-clean: ## Remove all build artifacts, including dependencies
+clean:## Remove all build artifacts, including dependencies
 	rm -Rf $(BROTLI).tar.gz $(BROTLI) \
 	 $(NSS_VERSION).tar.gz $(NSS_VERSION) boringssl.tar.gz boringssl $(NGHTTP2).tar.bz2 $(NGHTTP2) \
 	 $(CARES).tar.gz $(CARES)  $(LIBIDN2).tar.gz $(LIBIDN2)  $(LIBPSL).tar.gz $(LIBPSL) \
 	 $(CURL_VERSION).tar.xz $(CURL_VERSION)
+	 rm -f $(srcdir)/.curl-patch $(srcdir)/.patched-curl
 
 $(BROTLI).tar.gz:
 	curl -L "https://github.com/google/brotli/archive/refs/tags/v${BROTLI_VERSION}.tar.gz" \
 	-o "${BROTLI}.tar.gz"
 
 $(brotli_static_libs): $(BROTLI).tar.gz
-	tar -k -xf $(BROTLI).tar.gz
+	tar xf $(BROTLI).tar.gz
 	mkdir -p $(BROTLI)/out
 	cd $(BROTLI)/out
 	@cmake@ .. -DCMAKE_BUILD_TYPE=Release \
@@ -159,7 +159,7 @@ $(NSS_VERSION).tar.gz:
 	curl -L -o $(NSS_VERSION).tar.gz $(NSS_URL)
 
 $(nss_static_libs): $(NSS_VERSION).tar.gz
-	tar -k -xf $(NSS_VERSION).tar.gz
+	tar xf $(NSS_VERSION).tar.gz
 
 boringssl.tar.gz:
 	curl -L https://boringssl.googlesource.com/boringssl/+archive/$(BORINGSSL_COMMIT).tar.gz \
@@ -167,7 +167,7 @@ boringssl.tar.gz:
 
 $(boringssl_static_libs): boringssl.tar.gz
 	mkdir -p $(boringssl_install_dir)
-	tar -k -xf boringssl.tar.gz -C $(boringssl_install_dir)/..
+	tar xf boringssl.tar.gz -C $(boringssl_install_dir)/..
 	cd $(boringssl_install_dir)
 
 	# The extra CMAKE_C_FLAGS are needed because otherwise boringssl fails to
@@ -195,7 +195,7 @@ $(CARES).tar.gz:
 	curl -L $(CARES_URL) -o $(CARES).tar.gz
 
 $(cares_static_libs): $(CARES).tar.gz
-	tar -k -xf $(CARES).tar.gz
+	tar xf $(CARES).tar.gz
 	cd $(CARES)
 	./configure --prefix=$(cares_install_dir) --enable-shared=no
 	$(MAKE) MAKEFLAGS=
@@ -205,7 +205,7 @@ $(LIBIDN2).tar.gz:
 	curl -L $(LIBIDN2_URL) -o $(LIBIDN2).tar.gz
 
 $(libidn2_static_libs): $(LIBIDN2).tar.gz
-	tar -k -xf $(LIBIDN2).tar.gz
+	tar xf $(LIBIDN2).tar.gz
 	cd $(LIBIDN2)
 	./configure --prefix=$(libidn2_install_dir) --enable-shared=no \
 	--enable-doc=no CFLAGS=-fPIC
@@ -218,7 +218,7 @@ $(LIBPSL).tar.gz:
 	curl -L $(LIBPSL_URL) -o $(LIBPSL).tar.gz
 
 $(libpsl_static_libs): $(LIBPSL).tar.gz $(libidn2_static_libs)
-	tar -k -xf $(LIBPSL).tar.gz
+	tar xf $(LIBPSL).tar.gz
 	cd $(LIBPSL)
 	./configure --prefix=$(libpsl_install_dir) --enable-shared=no \
 	--enable-gtk-doc-html=no --with-pic --enable-runtime=libidn2 \
@@ -229,8 +229,8 @@ $(libpsl_static_libs): $(LIBPSL).tar.gz $(libidn2_static_libs)
 $(NGHTTP2).tar.bz2:
 	curl -L $(NGHTTP2_URL) -o $(NGHTTP2).tar.bz2
 
-$(nghttp2_static_libs): $(NGHTTP2).tar.bz2
-	tar -k -xf $(NGHTTP2).tar.bz2
+$(nghttp2_static_libs): $(NGHTTP2).tar.bz2 $(cares_static_libs) $(boringssl_static_libs)
+	tar xf $(NGHTTP2).tar.bz2
 	cd $(NGHTTP2)
 
 	# Set up the configure flags to nghttp2.
@@ -256,16 +256,15 @@ $(CURL_VERSION).tar.xz:
 # Apply the "Chorme version" patches and mark using a dummy file
 $(srcdir)/.patched-curl: $(CURL_VERSION).tar.xz $(srcdir)/curl/$(CURL_VERSION).patch
 	rm -Rf $(CURL_VERSION)
-	tar -k -xf $(CURL_VERSION).tar.xz
+	tar xf $(CURL_VERSION).tar.xz
 	cd $(CURL_VERSION)
 	patch -p1 < $(srcdir)/curl/$(CURL_VERSION).patch
 	# Re-generate the configure script
 	autoreconf -fi
 	touch $(srcdir)/.patched-curl
-	rm -f .patched-ff
 
 # This is a small hack that flags that curl was patched and configured in the "chrome" version
-$(CURL_VERSION)/.curl-patch: $(curl_libs)	$(CURL_VERSION).tar.xz $(CURL_VERSION)/.patched-curl
+$(srcdir)/.curl-patch: $(curl_libs)	$(CURL_VERSION).tar.xz $(srcdir)/.patched-curl
 	cd $(CURL_VERSION)
 
 	# Set up the configure flags to curl.
@@ -319,14 +318,14 @@ $(CURL_VERSION)/.curl-patch: $(curl_libs)	$(CURL_VERSION).tar.xz $(CURL_VERSION)
 
 	# Remove possible leftovers from a previous compilation
 	$(MAKE) clean MAKEFLAGS=
-	touch .curl-patch
+	touch $(srcdir)/.curl-patch
 
 $(PYCURL_TGZ):
 	curl -L $(PYCURL_URL) -o $(PYCURL_TGZ)
 
 $(srcdir)/.patched_pycurl: $(srcdir)/pycurl/$(PYCURL).patch $(PYCURL_TGZ)
 	rm -Rf $(PYCURL)
-	tar --keep-newer-files -xf $(PYCURL_TGZ)
+	tar xf $(PYCURL_TGZ)
 	cd $(PYCURL)
 	patch -p1 < $(srcdir)/pycurl/$(PYCURL).patch
 	touch $(srcdir)/.patched_pycurl
@@ -337,5 +336,4 @@ pycurl: $(srcdir)/.patched_pycurl curl-patch-install
 	ln ./dist/*.whl @prefix@/
 
 clean_pycurl:
-	rm -Rf $(PYCURL)/build
-	rm -Rf @prefix@/*.whl
+	rm -Rf $(PYCURL)/build @prefix@/*.whl $(srcdir)/.patched_pycurl
