@@ -332,7 +332,7 @@ $(srcdir)/.patched_pycurl: $(srcdir)/pycurl/$(PYCURL).patch $(PYCURL_TGZ)
 
 pycurl: $(srcdir)/.patched_pycurl curl-patch-install
 	cd $(PYCURL)
-	CPPFLAGS="-L$(brotli_install_dir)/lib" python setup.py bdist_wheel --curl-config=@prefix@/bin/curl-config --openssl-dir=$(boringssl_install_dir)
+	CPPFLAGS="-L$(brotli_install_dir)/lib" python3 setup.py bdist_wheel --curl-config=@prefix@/bin/curl-config --openssl-dir=$(boringssl_install_dir)
 	ln ./dist/*.whl @prefix@/
 
 clean_pycurl:
