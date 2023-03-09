@@ -9,13 +9,13 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    if: github.ref_type == 'tag'
     permissions:
       contents: write
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
       - name: Create Release
-        if: github.ref_type == 'tag'
         id: create_release
         uses: actions/create-release@v1
         env:
