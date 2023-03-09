@@ -27,6 +27,7 @@ jobs:
           prerelease: false
   build:
     needs: release
+    if: always()
     permissions:
       contents: write
     runs-on: ${{ matrix.os }}
