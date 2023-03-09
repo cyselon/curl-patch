@@ -53,7 +53,8 @@ jobs:
       run: |
         brew install autoconf libtool automake libunistring
         brew install cmake curl ninja make pkg-config icu4c
-        python3 -m pip install gyp-next
+        python3 -m pip install -U setuptools pip
+        python3 -m pip install -U gyp-next wheel check-wheel-contents
 
     - uses: actions/checkout@v3
 
@@ -116,4 +117,4 @@ jobs:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ${{ env.prefix }}/${{ env.pycurl_release_file }}
         asset_name: ${{ env.pycurl_release_file }}
-        asset_content_type: application/x-bzip
+        asset_content_type: application/zip
