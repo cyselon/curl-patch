@@ -20,12 +20,13 @@ jobs:
             arch: x86_64
             host: x86_64-linux-gnu
             make: make
-            name: linux
+            libs:
           - os: macos-12
             arch: x86_64
             host: x86_64-macos
-            make: make
+            make: gmake
             name: macos
+            libs: -lresolv -liconv
     env:
       GODIR: /tmp/go
       prefix: /tmp/curl
@@ -50,24 +51,21 @@ jobs:
     - name: Install MacOS Dependencies
       if: matrix.os == 'macos-12'
       run: |
-        brew install autoconf libtool automake
-        brew install cmake curl ninja make pkg-config libunistring
+        brew install autoconf libtool automake libunistring
+        brew install cmake curl ninja make pkg-config icu4c
         python3 -m pip install gyp-next
 
     - uses: actions/checkout@v3
 
     - name: configure
-      run: autoconf -i -f && ./configure --prefix=${{ env.prefix }}
+      run: autoconf -i -f && ./configure --prefix=${{ env.prefix }} LIBS=${{ matrix.libs }}
 
     - name: Build
-      run: make chrome-build
-
-    - name: Run check
-      run: make chrome-checkbuild
+      run: ${{matrix.make}} all
 
     - name: Run Install
       if: startsWith(github.ref, 'refs/tags/')
-      run: make chrome-install-strip
+      run: ${{matrix.make}} install
 
     - name: Get the version
       uses: olegtarasov/get-tag@v2.1.2
