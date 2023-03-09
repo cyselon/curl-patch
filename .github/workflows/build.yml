@@ -65,7 +65,9 @@ jobs:
 
     - name: Run Install
       if: startsWith(github.ref, 'refs/tags/')
-      run: ${{matrix.make}} install
+      run: |
+        ${{matrix.make}} install
+        ${{matrix.make}} pycurl
 
     - name: Get the version
       uses: olegtarasov/get-tag@v2.1.2
@@ -78,6 +80,7 @@ jobs:
            cd ${{ env.prefix }}
            tar cjf curl-patch-$GIT_TAG_NAME-${{ matrix.name }}-${{ matrix.arch }}.tar.bz2 bin lib
            echo "release_file=curl-patch-$GIT_TAG_NAME-${{ matrix.name }}-${{ matrix.arch }}.tar.bz2" >> $GITHUB_ENV
+           ls -rt ${{ env.prefix }}/*.whl | tail -n 1 | sed 's:^.*/:pycurl_release_file=:' >> $GITHUB_ENV
 
     - name: Create Release
       if: startsWith(github.ref, 'refs/tags/')
@@ -91,9 +94,9 @@ jobs:
         draft: false
         prerelease: false
 
-    - name: Upload Release Asset
+    - name: Upload Curl Release Asset
       if: startsWith(github.ref, 'refs/tags/')
-      id: upload-release-asset
+      id: upload-curl-release-asset
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -101,4 +104,16 @@ jobs:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
         asset_path: ${{ env.prefix }}/${{ env.release_file }}
         asset_name: ${{ env.release_file }}
+        asset_content_type: application/x-bzip
+
+    - name: Upload Pycurl Release Asset
+      if: startsWith(github.ref, 'refs/tags/')
+      id: upload-pycurl-release-asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ${{ env.prefix }}/${{ env.pycurl_release_file }}
+        asset_name: ${{ env.pycurl_release_file }}
         asset_content_type: application/x-bzip
