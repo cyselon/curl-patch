@@ -253,7 +253,7 @@ $(CURL_VERSION).tar.xz:
 	curl -L "https://curl.se/download/$(CURL_VERSION).tar.xz" \
 	-o "$(CURL_VERSION).tar.xz"
 
-# Apply the "Chorme version" patches and mark using a dummy file
+# Apply the curl patches and mark using a dummy file
 $(srcdir)/.patched-curl: $(CURL_VERSION).tar.xz $(srcdir)/curl/$(CURL_VERSION).patch
 	rm -Rf $(CURL_VERSION)
 	tar xf $(CURL_VERSION).tar.xz
