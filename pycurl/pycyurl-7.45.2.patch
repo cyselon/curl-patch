@@ -1,0 +1,61 @@
+Index: src/easyopt.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/easyopt.c b/src/easyopt.c
+--- a/src/easyopt.c	(revision 84f775aa5879945ceab93f81e2a5ef2d956f8719)
++++ b/src/easyopt.c	(revision e9e25190320c2285f88f7d0da3a5caf340927c73)
+@@ -241,6 +241,8 @@
+     case CURLOPT_SSLKEY:
+     case CURLOPT_SSLKEYTYPE:
+     case CURLOPT_SSL_CIPHER_LIST:
++    case CURLOPT_HTTP2_FINGERPRINT:
++    case CURLOPT_SSL_CERT_COMPRESSION:
+     case CURLOPT_URL:
+     case CURLOPT_USERAGENT:
+     case CURLOPT_USERPWD:
+@@ -320,6 +322,9 @@
+ #endif
+ #if LIBCURL_VERSION_NUM >= MAKE_LIBCURL_VERSION(7, 62, 0)
+     case CURLOPT_DOH_URL:
++#endif
++#if LIBCURL_VERSION_NUM >= MAKE_LIBCURL_VERSION(7, 73, 0)
++     case CURLOPT_SSL_EC_CURVES:
+ #endif
+     case CURLOPT_KRBLEVEL:
+         str = PyText_AsString_NoNUL(obj, &encoded_obj);
+Index: src/module.c
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/src/module.c b/src/module.c
+--- a/src/module.c	(revision 84f775aa5879945ceab93f81e2a5ef2d956f8719)
++++ b/src/module.c	(revision e9e25190320c2285f88f7d0da3a5caf340927c73)
+@@ -869,6 +869,17 @@
+     insint_c(d, "SSL_VERIFYHOST", CURLOPT_SSL_VERIFYHOST);
+     insint_c(d, "COOKIEJAR", CURLOPT_COOKIEJAR);
+     insint_c(d, "SSL_CIPHER_LIST", CURLOPT_SSL_CIPHER_LIST);
++    insint_c(d, "SSL_CERT_COMPRESSION", CURLOPT_SSL_CERT_COMPRESSION);
++    insint_c(d, "SSL_ENABLE_GREASE", CURLOPT_SSL_ENABLE_GREASE);
++    insint_c(d, "SSL_ENABLE_ALPS", CURLOPT_SSL_ENABLE_ALPS);
++    insint_c(d, "SSL_PERMUTE_EXTENSIONS", CURLOPT_SSL_PERMUTE_EXT);
++    insint_c(d, "SSL_NO_SESS_TICKET", CURLOPT_SSL_NO_TICKET);
++    insint_c(d, "SSL_SIG_CERT_TS", CURLOPT_SSL_SIG_CERT_TS);
++    insint_c(d, "SSL_OCSP_STAPLING", CURLOPT_SSL_ENABLE_OCSP);
++    insint_c(d, "SSL_SHED_HS_CFG", CURLOPT_SSL_SHED_HS_CFG);
++#if LIBCURL_VERSION_NUM >= MAKE_LIBCURL_VERSION(7, 73, 0)
++    insint_c(d, "SSL_EC_CURVES", CURLOPT_SSL_EC_CURVES);
++#endif
+     insint_c(d, "HTTP_VERSION", CURLOPT_HTTP_VERSION);
+     insint_c(d, "FTP_USE_EPSV", CURLOPT_FTP_USE_EPSV);
+     insint_c(d, "SSLCERTTYPE", CURLOPT_SSLCERTTYPE);
+@@ -894,6 +905,7 @@
+     insint_c(d, "ACCEPT_ENCODING", CURLOPT_ACCEPT_ENCODING);
+     insint_c(d, "TRANSFER_ENCODING", CURLOPT_TRANSFER_ENCODING);
+ #endif
++    insint_c(d, "HTTP2_FINGERPRINT", CURLOPT_HTTP2_FINGERPRINT);
+     insint_c(d, "HTTP200ALIASES", CURLOPT_HTTP200ALIASES);
+     insint_c(d, "UNRESTRICTED_AUTH", CURLOPT_UNRESTRICTED_AUTH);
+     insint_c(d, "FTP_USE_EPRT", CURLOPT_FTP_USE_EPRT);
