@@ -42,7 +42,7 @@ jobs:
         sudo apt-get install -y autoconf gcc g++ libtool
         sudo apt-get install -y cmake curl ninja-build libzip-dev
         sudo apt-get install -y pkg-config libunistring-dev
-        sudo python3 -m pip install gyp-next
+        sudo python3 -m pip install -U gyp-next wheel setuptools
         curl -L https://go.dev/dl/go1.20.1.linux-amd64.tar.gz -o go1.20.1.linux-amd64.tar.gz
         mkdir -p $GODIR
         tar -xf go1.20.1.linux-amd64.tar.gz -C $GODIR
