@@ -34,7 +34,7 @@ jobs:
     steps:
     - uses: actions/setup-python@v4
       with:
-          python-version: '3.978'
+          python-version: '3.9'
 
     - name: Install Ubuntu Dependencies
       if: matrix.os == 'ubuntu-20.04'
