@@ -78,7 +78,7 @@ jobs:
 
       - name: Build Curl
         run: |
-          ./command.sh build ${{ env.PREFIX }} ${{ env.SSL }}/build
+          ./command.sh build simple ${{ env.PREFIX }} ${{ env.SSL }}/build
           echo 'LD_LIBRARY_PATH="$LD_LIBRARY_PATH":${{ env.SSL }}/build:${{ env.PREFIX }}/lib' >> $GITHUB_ENV
           ${{ env.PREFIX }}/bin/curl https://httpbin.org/anything --cert-compression brotli --alps --grease --sign-cert-timestamps --ocsp --share-handshake --http2
 
