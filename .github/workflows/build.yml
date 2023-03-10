@@ -40,63 +40,62 @@ jobs:
             arch: x86_64
             host: x86_64-linux-gnu
             make: make
-            libs:
+            name: Linux
           - os: macos-12
             arch: x86_64
             host: x86_64-macos
             make: gmake
-            name: macos
-            libs: -lresolv -liconv
+            name: Darwin
     env:
-      GODIR: /tmp/go
-      prefix: /tmp/curl
+      PREFIX: ${{ github.workspace }}/installed
+      SSL: ${{ github.workspace }}/boringssl/
+      PYCURL_VERSION: pycurl-7.45.2
+      CURL_VERSION: curl-7.88.1
+      BORINGSSL_COMMIT: 28f96c2686459add7acedcd97cb841030bdda019
+      PYCURL_URL: https://files.pythonhosted.org/packages/a8/af/24d3acfa76b867dbd8f1166853c18eefc890fc5da03a48672b38ea77ddae/pycurl-7.45.2.tar.gz
 
     steps:
       - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
 
-      - name: Install Ubuntu Dependencies
-        if: matrix.os == 'ubuntu-20.04'
-        run: |
-          sudo apt-get install -y autoconf gcc g++ libtool
-          sudo apt-get install -y cmake curl ninja-build libzip-dev
-          sudo apt-get install -y pkg-config libunistring-dev
-          sudo python3 -m pip install -U gyp-next wheel setuptools
-          curl -L https://go.dev/dl/go1.20.1.linux-amd64.tar.gz -o go1.20.1.linux-amd64.tar.gz
-          mkdir -p $GODIR
-          tar -xf go1.20.1.linux-amd64.tar.gz -C $GODIR
-          echo "$GODIR/go/bin" >> $GITHUB_PATH
-
-      - name: Install MacOS Dependencies
-        if: matrix.os == 'macos-12'
-        run: |
-          brew install autoconf libtool automake libunistring
-          brew install cmake curl ninja make pkg-config icu4c
-          python3 -m pip install -U setuptools pip
-          python3 -m pip install -U gyp-next wheel check-wheel-contents
+      - name: Install Simple Dependencies
+        run: ./command.sh deps simple
 
       - uses: actions/checkout@v3
+      - uses: actions/setup-go@v3
+        with:
+          go-version: '>=1.20.1'
 
-      - name: configure
-        run: autoconf -i -f && ./configure --prefix=${{ env.prefix }} LIBS="${{ matrix.libs }}"
+      - run: go version
 
-      - name: Build
-        run: ${{matrix.make}} all
+      - name: Build BoringSSL
+        run: ./command.sh boringssl
 
-      - name: Run Install
-        if: github.ref_type == 'tag'
+      - name: Download Curl
+        run: curl -L https://curl.se/download/${{ env.CURL_VERSION }}.tar.xz -o ${{ env.CURL_VERSION }}.tar.xz
+
+      - name: Build Curl
         run: |
-          ${{matrix.make}} install
-          ${{matrix.make}} pycurl
+          ./command.sh build ${{ env.PREFIX }} ${{ env.SSL }}/build
+          echo 'LD_LIBRARY_PATH="$LD_LIBRARY_PATH":${{ env.SSL }}/build:${{ env.PREFIX }}/lib' >> $GITHUB_ENV
+          ${{ env.PREFIX }}/bin/curl https://httpbin.org/anything --cert-compression brotli --alps --grease --sign-cert-timestamps --ocsp --share-handshake --http2
+
+      - name: Download PyCURL
+        if: github.ref_type == 'tag'
+        run: curl -L ${{ env.PYCURL_URL }} -o ${{ env.PYCURL_VERSION }}.tar.gz
+
+      - name: Build PyCURL Wheel
+        if: github.ref_type == 'tag'
+        run: ./command.sh pycurl ${{ env.PREFIX }} ${{ env.SSL }}/build
 
       - name: Package
         if: github.ref_type == 'tag'
         run: |
-          cd ${{ env.prefix }}
-          tar cjf curl-patch-${{ github.ref_name }}-${{ matrix.name }}-${{ matrix.arch }}.tar.bz2 bin lib
+          ls -rt ${{ env.PYCURL_VERSION }}/dist/*.whl | tail -n 1 | sed 's:^.*/:pycurl_release_file=:' >> $GITHUB_ENV
+          cd ${{ env.PREFIX }}
+          tar cjf curl-patch-${{ github.ref_name }}-${{ matrix.name }}-${{ matrix.arch }}.tar.bz2 bin lib include share
           echo "release_file=curl-patch-${{ github.ref_name }}-${{ matrix.name }}-${{ matrix.arch }}.tar.bz2" >> $GITHUB_ENV
-          ls -rt ${{ env.prefix }}/*.whl | tail -n 1 | sed 's:^.*/:pycurl_release_file=:' >> $GITHUB_ENV
 
       - name: Upload Curl Release Asset
         if: github.ref_type == 'tag'
@@ -106,11 +105,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: ${{ env.prefix }}/${{ env.release_file }}
+          asset_path: ${{ env.PREFIX }}/${{ env.release_file }}
           asset_name: ${{ env.release_file }}
           asset_content_type: application/x-bzip
 
-      - name: Upload Pycurl Release Asset
+      - name: Upload PyCURL Release Asset
         if: github.ref_type == 'tag'
         id: upload-pycurl-release-asset
         uses: actions/upload-release-asset@v1
@@ -118,6 +117,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ needs.release.outputs.upload_url }}
-          asset_path: ${{ env.prefix }}/${{ env.pycurl_release_file }}
+          asset_path: ${{ env.PREFIX }}/${{ env.pycurl_release_file }}
           asset_name: ${{ env.pycurl_release_file }}
           asset_content_type: application/zip
