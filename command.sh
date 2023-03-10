@@ -74,7 +74,7 @@ install_ubuntu(){
 
 build_boringssl(){
     if [[ ! -f boringssl.tar.gz ]];then
-      curl -L "https://boringssl.googlesource.com/boringssl/+archive/$(BORINGSSL_COMMIT).tar.gz" \
+      curl -L "https://boringssl.googlesource.com/boringssl/+archive/${BORINGSSL_COMMIT}.tar.gz" \
           	-o boringssl.tar.gz
     fi
     mkdir -p boringssl/build
