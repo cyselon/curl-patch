@@ -47,14 +47,14 @@ install_ubuntu_simple(){
 
 
 install_macosx_full(){
-  brew install autoconf gcc g++ libtool cmake curl ninja \
+  brew install autoconf automake libtool cmake curl ninja \
   pkg-config libunistring zlib brotli zstd libidn2 libpsl \
   c-ares rtmpdump libssh2 nghttp2
   python3 -m pip install -U pip wheel gyp-next setuptools
 }
 
 install_macosx_simple(){
-  brew install autoconf gcc g++ libtool cmake curl ninja zlib \
+  brew install autoconf automake libtool cmake curl ninja zlib \
   pkg-config libunistring brotli nghttp2
   python3 -m pip install -U pip wheel gyp-next setuptools
 }
