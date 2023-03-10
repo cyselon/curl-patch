@@ -59,13 +59,14 @@ jobs:
         with:
           python-version: '3.9'
 
-      - name: Install Simple Dependencies
-        run: ./command.sh deps simple
-
-      - uses: actions/checkout@v3
       - uses: actions/setup-go@v3
         with:
           go-version: '>=1.20.1'
+
+      - uses: actions/checkout@v3
+
+      - name: Install Simple Dependencies
+        run: ./command.sh deps simple
 
       - run: go version
 
