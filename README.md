@@ -1,4 +1,4 @@
-Curl_h2_ja3_patch
+Curl Patch
 ==================
 a patch to enable HTTP2 and JA3 fingerprint to be configurable for CURL
 
