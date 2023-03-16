@@ -85,7 +85,7 @@ build_boringssl(){
           -DCMAKE_POSITION_INDEPENDENT_CODE=on \
           -DCMAKE_C_FLAGS="-Wno-unknown-warning-option -Wno-stringop-overflow -Wno-array-bounds" \
           -GNinja ..
-    ninja
+    ninja -j"$(nproc)"
     mkdir -p lib
     ln -sf ../crypto/libcrypto.a lib/libcrypto.a
     ln -sf ../ssl/libssl.a lib/libssl.a
@@ -119,6 +119,7 @@ install_depends(){
 
 build_simple(){
   echo "build simple in $(pwd) to ${1}"
+  autoreconf -if
   ./configure --prefix="$1" --with-openssl="$2" --with-brotli \
   --with-pic --with-zlib --with-nghttp2 && \
   make -j"$(nproc)" && make install
@@ -126,6 +127,7 @@ build_simple(){
 
 build_full(){
   echo "build full in $(pwd) to ${1}"
+  autoreconf -if
   ./configure --prefix="$1" --with-openssl="$2" --with-brotli --with-nghttp2 \
    --enable-cookies --with-libpsl --enable-ares --with-libidn2 --with-zstd \
    --with-zlib --with-pic --enable-alt-svc --enable-dnsshuffle --enable-tls-srp \
@@ -136,9 +138,8 @@ build_full(){
 
 build_curl(){
   echo "Building ${CURL_VERSION} with $1 features"
-  tar xf "${CURL_VERSION}".tar.xz
+  [[ -f "${CURL_VERSION}/.patched" ]] || tar xf "${CURL_VERSION}".tar.xz
   pushd "${CURL_VERSION}" || (echo "pushd failed" && return)
-  pwd
   PATCH_FILE=../curl/"${CURL_VERSION}".patch
   [[ ! -f "${PATCH_FILE}" ]] && echo "${PATCH_FILE} not found" && return
   [[ ! -f .patched ]] && patch -p1 < "$PATCH_FILE" && touch .patched && echo "files patched"
@@ -156,12 +157,12 @@ build_curl(){
 build_pycurl(){
   echo "Building ${PYCURL_VERSION}"
   [[ ! -f "${PYCURL_VERSION}".tar.gz ]] && echo "${PYCURL_VERSION}.tar.gz not found" && return
-  tar xf "${PYCURL_VERSION}".tar.gz
+  [[ -f "${PYCURL_VERSION}/.patched" ]] || tar xf "${PYCURL_VERSION}".tar.gz
   pushd "${PYCURL_VERSION}" || (echo "pushd failed" && return)
   PATCH_FILE=../pycurl/"${PYCURL_VERSION}".patch
   [[ ! -f "${PATCH_FILE}" ]] && echo "${PATCH_FILE} not found" && return
   [[ ! -f .patched ]] && patch -p1 < "$PATCH_FILE" && touch .patched && echo "files patched"
-  python3 setup.py bdist_wheel --curl-config="${1}/bin/curl-config" --openssl-dir="$2"
+  CFLAGS="-s" python3 setup.py bdist_wheel --curl-config="${1}/bin/curl-config" --openssl-dir="$2"
   popd || echo "popd failed" && return
 }
 
